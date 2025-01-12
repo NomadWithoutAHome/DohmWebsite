@@ -285,7 +285,7 @@
             let currentExtensionId = '';
             let currentChunk = {
                 start: 0,
-                size: 1000,
+                size: 500,
                 total: 0
             };
 
@@ -310,12 +310,26 @@
                 }
             }
 
+            function is_audio_file(filename) {
+                return /\.(mp3|wav|ogg|m4a)$/i.test(filename);
+            }
+
             // Update code with syntax highlighting
             function updateCodeDisplay(code, language, isBinary, isImage, append = false) {
+                // Clear any existing line count information at the start
+                const existingLineInfo = document.querySelector('.line-count-info');
+                if (existingLineInfo) {
+                    existingLineInfo.remove();
+                }
+
                 const MAX_DISPLAY_SIZE = 100000; // Reduced to ~100KB chunks for better performance
                 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB for images
+                const MAX_AUDIO_SIZE = 10 * 1024 * 1024; // 10MB for audio
                 
                 if (isBinary) {
+                    // Hide load more button for binary files
+                    loadMoreBtn.classList.add('hidden');
+
                     if (isImage) {
                         const sizeInfo = fileSelector.options[fileSelector.selectedIndex].getAttribute('data-size');
                         const fileSize = parseInt(sizeInfo);
@@ -355,6 +369,71 @@
                             sourceCode.textContent = 'Invalid image data';
                             sourceCode.parentElement.classList.remove('hidden');
                             showLoading(false);
+                        }
+                    } else if (is_audio_file(fileSelector.value)) {
+                        const sizeInfo = fileSelector.options[fileSelector.selectedIndex].getAttribute('data-size');
+                        const fileSize = parseInt(sizeInfo);
+                        
+                        if (fileSize > MAX_AUDIO_SIZE) {
+                            sourceCode.className = 'language-text';
+                            sourceCode.textContent = 'Audio file is too large to preview in browser.\nPlease download the extension to play this file.';
+                            sourceCode.parentElement.classList.remove('hidden');
+                            return;
+                        }
+
+                        // Create audio player container
+                        const audioContainer = document.createElement('div');
+                        audioContainer.className = 'flex flex-col items-center justify-center p-4 space-y-4';
+                        
+                        // Add file info
+                        const fileInfo = document.createElement('div');
+                        fileInfo.className = 'text-orange-500 text-sm';
+                        fileInfo.textContent = fileSelector.value;
+                        audioContainer.appendChild(fileInfo);
+
+                        // Create audio element
+                        const audio = document.createElement('audio');
+                        audio.controls = true;
+                        audio.className = 'w-full max-w-md';
+                        audio.style.height = '40px';
+                        
+                        // Add custom styling to audio element
+                        const audioStyle = document.createElement('style');
+                        audioStyle.textContent = `
+                            audio::-webkit-media-controls-panel {
+                                background-color: #1a1a1a;
+                                border: 2px solid #f97316;
+                            }
+                            audio::-webkit-media-controls-current-time-display,
+                            audio::-webkit-media-controls-time-remaining-display {
+                                color: #f97316;
+                            }
+                            audio::-webkit-media-controls-play-button,
+                            audio::-webkit-media-controls-mute-button {
+                                filter: invert(60%) sepia(94%) saturate(3000%) hue-rotate(360deg);
+                            }
+                            audio::-webkit-media-controls-volume-slider,
+                            audio::-webkit-media-controls-timeline {
+                                filter: hue-rotate(300deg) saturate(200%);
+                            }
+                        `;
+                        document.head.appendChild(audioStyle);
+
+                        // Extract base64 audio data
+                        const match = code.match(/src="data:[^;]+;base64,([^"]+)"/);
+                        if (match) {
+                            const fileExt = fileSelector.value.split('.').pop().toLowerCase();
+                            audio.src = `data:audio/${fileExt};base64,${match[1]}`;
+                            audioContainer.appendChild(audio);
+                            
+                            sourceCode.className = '';
+                            sourceCode.innerHTML = '';
+                            sourceCode.appendChild(audioContainer);
+                            sourceCode.parentElement.classList.remove('hidden');
+                        } else {
+                            sourceCode.className = 'language-text';
+                            sourceCode.textContent = 'Invalid audio data';
+                            sourceCode.parentElement.classList.remove('hidden');
                         }
                     } else {
                         sourceCode.className = 'language-text';
@@ -447,9 +526,15 @@
                         const isLastChunk = data.current_chunk.end >= data.total_lines;
                         loadMoreBtn.classList.toggle('hidden', isLastChunk);
                         
+                        // Remove any existing line count information
+                        const existingLineInfo = document.querySelector('.line-count-info');
+                        if (existingLineInfo) {
+                            existingLineInfo.remove();
+                        }
+                        
                         // Add line count information
                         const lineCountInfo = document.createElement('div');
-                        lineCountInfo.className = 'text-gray-500 text-sm mt-2 text-center';
+                        lineCountInfo.className = 'text-gray-500 text-sm mt-2 text-center line-count-info';
                         lineCountInfo.textContent = `Showing lines ${data.current_chunk.start + 1} to ${data.current_chunk.end} of ${data.total_lines}`;
                         sourceCode.parentElement.appendChild(lineCountInfo);
                     } else {
@@ -467,7 +552,7 @@
             // Handle file selection change
             fileSelector.addEventListener('change', async () => {
                 if (!currentExtensionId) return;
-                currentChunk = { start: 0, size: 1000, total: 0 };
+                currentChunk = { start: 0, size: 500, total: 0 };
                 await loadFileContent(currentExtensionId, fileSelector.value);
             });
 
@@ -510,7 +595,7 @@
                     updateFileSelector(data.files, data.file_types, data.file_sizes);
 
                     currentExtensionId = extensionId;
-                    currentChunk = { start: 0, size: 1000, total: 0 };
+                    currentChunk = { start: 0, size: 500, total: 0 };
                     updateCodeDisplay(data.source, 'json', false, false);
                     modal.classList.remove('hidden');
                     errorMessage.style.display = 'none';

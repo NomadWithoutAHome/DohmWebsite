@@ -98,9 +98,15 @@ def is_binary_file(filename):
         'pdf', 'doc', 'docx',  # Documents
         'zip', 'rar', '7z',    # Archives
         'exe', 'dll',          # Executables
-        'ttf', 'woff', 'woff2' # Fonts
+        'ttf', 'woff', 'woff2', # Fonts
+        'mp3', 'wav', 'ogg', 'm4a'  # Audio files
     }
     return filename.split('.')[-1].lower() in binary_extensions
+
+def is_audio_file(filename):
+    """Check if a file is an audio file based on its extension."""
+    audio_extensions = {'mp3', 'wav', 'ogg', 'm4a'}
+    return filename.split('.')[-1].lower() in audio_extensions
 
 @app.route('/')
 def home():
@@ -154,8 +160,8 @@ def view_extension():
         url_or_id = data.get('extension_id')
         filename = data.get('filename')
         list_files = data.get('list_files', False)
-        chunk_start = data.get('chunk_start', 0)  # Line number to start from
-        chunk_size = data.get('chunk_size', 1000)  # Number of lines per chunk
+        chunk_start = data.get('chunk_start', 0)
+        chunk_size = data.get('chunk_size', 500)
         
         if not url_or_id:
             return jsonify({'error': 'Extension ID or URL is required'}), 400
@@ -180,17 +186,17 @@ def view_extension():
                         if f == 'manifest.json':
                             return (0, f)
                         is_binary = is_binary_file(f)
+                        is_audio = is_audio_file(f)
                         ext = f.split('.')[-1].lower()
                         type_order = {
                             'js': 1, 
                             'html': 2, 'htm': 2,
-                            'css': 3
+                            'css': 3,
+                            'mp3': 4, 'wav': 4, 'ogg': 4, 'm4a': 4  # Group audio files
                         }
-                        return (type_order.get(ext, 5 if is_binary else 4), f)
+                        return (type_order.get(ext, 6 if is_binary else 5), f)
                     
                     files.sort(key=file_sort_key)
-                    
-                    # Get file sizes
                     file_sizes = {f: z.getinfo(f).file_size for f in files}
                     
                     manifest = z.read('manifest.json').decode('utf-8')
@@ -200,7 +206,7 @@ def view_extension():
                     return jsonify({
                         'files': files,
                         'source': formatted_manifest,
-                        'file_types': {f: 'binary' if is_binary_file(f) else 'text' for f in files},
+                        'file_types': {f: 'audio' if is_audio_file(f) else ('binary' if is_binary_file(f) else 'text') for f in files},
                         'file_sizes': file_sizes
                     })
                 
@@ -218,10 +224,20 @@ def view_extension():
                                 'is_binary': True,
                                 'is_image': True
                             })
+                        elif is_audio_file(filename):
+                            import base64
+                            b64_content = base64.b64encode(file_content).decode()
+                            return jsonify({
+                                'source': f'<audio src="data:audio/{filename.split(".")[-1]};base64,{b64_content}" controls>',
+                                'is_binary': True,
+                                'is_image': False,
+                                'is_audio': True
+                            })
                         return jsonify({
                             'source': '[Binary file content not displayed]',
                             'is_binary': True,
-                            'is_image': False
+                            'is_image': False,
+                            'is_audio': False
                         })
                     
                     # For text files, implement chunked reading
