@@ -5,6 +5,7 @@ import zipfile
 from io import BytesIO
 import re
 import struct
+import json
 
 app = Flask(__name__)
 
@@ -134,6 +135,89 @@ def download_extension():
             as_attachment=True,
             download_name=f'{extension_id}.crx'
         )
+
+@app.route('/view-extension', methods=['POST'])
+def view_extension():
+    try:
+        data = request.get_json()
+        url_or_id = data.get('extension_id')
+        filename = data.get('filename')
+        list_files = data.get('list_files', False)
+        
+        if not url_or_id:
+            return jsonify({'error': 'Extension ID or URL is required'}), 400
+
+        # Use the same extraction method as download function
+        extension_id = extract_extension_id(url_or_id)
+        if not extension_id:
+            return jsonify({'error': 'Invalid extension ID or URL'}), 400
+
+        # Use the same download function as the working download route
+        crx_content, error = safe_download_crx(extension_id)
+        if error:
+            return jsonify({'error': error}), 400
+
+        # Convert CRX to ZIP
+        zip_content, error = crx_to_zip(crx_content)
+        if error:
+            return jsonify({'error': error}), 400
+            
+        # Process the ZIP content
+        try:
+            with zipfile.ZipFile(BytesIO(zip_content)) as z:
+                # If list_files is True, return list of files
+                if list_files:
+                    files = [f for f in z.namelist() if not f.endswith('/')]
+                    # Filter and sort files by type
+                    def file_sort_key(f):
+                        # Prioritize manifest.json, then group by extension
+                        if f == 'manifest.json':
+                            return (0, f)
+                        ext = f.split('.')[-1].lower()
+                        # Order: js, html, css, others
+                        type_order = {'js': 1, 'html': 2, 'css': 3}
+                        return (type_order.get(ext, 4), f)
+                    
+                    files.sort(key=file_sort_key)
+                    
+                    # Read manifest.json as default file
+                    manifest = z.read('manifest.json').decode('utf-8')
+                    manifest_dict = json.loads(manifest)
+                    formatted_manifest = json.dumps(manifest_dict, indent=2)
+                    
+                    return jsonify({
+                        'files': files,
+                        'source': formatted_manifest
+                    })
+                
+                # If filename is provided, read that specific file
+                if filename:
+                    if filename not in z.namelist():
+                        return jsonify({'error': f'File {filename} not found'}), 404
+                    
+                    content = z.read(filename).decode('utf-8')
+                    
+                    # Pretty print JSON files
+                    if filename.endswith('.json'):
+                        try:
+                            content_dict = json.loads(content)
+                            content = json.dumps(content_dict, indent=2)
+                        except json.JSONDecodeError:
+                            pass  # If JSON is invalid, return as is
+                    
+                    return jsonify({'source': content})
+                
+                # Default to manifest.json
+                manifest = z.read('manifest.json').decode('utf-8')
+                manifest_dict = json.loads(manifest)
+                formatted_manifest = json.dumps(manifest_dict, indent=2)
+                return jsonify({'source': formatted_manifest})
+                
+        except Exception as e:
+            return jsonify({'error': f'Failed to read file: {str(e)}'}), 400
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True) 

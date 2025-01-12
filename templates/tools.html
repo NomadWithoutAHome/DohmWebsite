@@ -3,9 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dohmbdy64 - Tools</title>
+    <title>CRX Tools - DOHMBDY64</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <!-- Add Prism CSS and JS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
+    <!-- Add language support -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-html.min.js"></script>
+
     <style>
         body {
             background: #1a1a1a;
@@ -81,6 +92,17 @@
             margin-top: 1rem;
             display: none;
         }
+        /* Custom styles for Prism to match our retro theme */
+        pre[class*="language-"] {
+            background: #1a1a1a !important;
+            border: 2px solid #f97316;
+            border-radius: 0.5rem;
+        }
+        .token.comment { color: #666 !important; }
+        .token.string { color: #f97316 !important; }
+        .token.number { color: #60a5fa !important; }
+        .token.property { color: #34d399 !important; }
+        .line-numbers .line-numbers-rows { border-right: 2px solid #f97316 !important; }
     </style>
 </head>
 <body class="text-white">
@@ -119,9 +141,30 @@
                         </div>
                     </div>
 
-                    <button type="submit" class="retro-button">DOWNLOAD</button>
+                    <div class="flex justify-center gap-4">
+                        <button type="submit" class="retro-button">DOWNLOAD</button>
+                        <button type="button" class="retro-button" id="view-button">VIEW</button>
+                    </div>
                     <p id="error-message" class="error-message">Error downloading extension</p>
                 </form>
+
+                <!-- Source Code Viewer Modal -->
+                <div id="source-viewer-modal" class="fixed inset-0 hidden bg-black bg-opacity-80 flex items-center justify-center z-50">
+                    <div class="bg-gray-900 border-4 border-orange-500 rounded-lg w-11/12 h-5/6 max-w-6xl relative">
+                        <div class="flex justify-between items-center p-4 border-b border-orange-500">
+                            <div class="flex items-center gap-4">
+                                <h2 class="text-xl text-orange-500">SOURCE CODE VIEWER</h2>
+                                <select id="file-selector" class="retro-input bg-gray-800 text-gray-300 px-4 py-2 rounded">
+                                    <option value="manifest.json">manifest.json</option>
+                                </select>
+                            </div>
+                            <button id="close-modal" class="retro-button px-4">CLOSE</button>
+                        </div>
+                        <div class="p-4 h-[calc(100%-5rem)] overflow-auto">
+                            <pre id="source-code" class="line-numbers"><code class="language-json"></code></pre>
+                        </div>
+                    </div>
+                </div>
 
                 <div class="text-center space-y-6 mt-12">
                     <h2 class="text-xl text-orange-500">How to find Extension ID?</h2>
@@ -186,6 +229,130 @@
             const audio = new Audio("{{ url_for('static', filename='hover.wav') }}");
             audio.volume = 0.2;
             audio.play();
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('crx-form');
+            const viewButton = document.getElementById('view-button');
+            const modal = document.getElementById('source-viewer-modal');
+            const closeModal = document.getElementById('close-modal');
+            const sourceCode = document.getElementById('source-code').querySelector('code');
+            const fileSelector = document.getElementById('file-selector');
+            const errorMessage = document.getElementById('error-message');
+            const extensionInput = document.getElementById('extension-id');
+
+            let currentExtensionId = '';
+
+            // Update code with syntax highlighting
+            function updateCodeDisplay(code, language) {
+                sourceCode.className = `language-${language}`;
+                sourceCode.textContent = code;
+                Prism.highlightElement(sourceCode);
+            }
+
+            // Get file extension and map to Prism language
+            function getLanguageFromFilename(filename) {
+                const ext = filename.split('.').pop().toLowerCase();
+                const languageMap = {
+                    'js': 'javascript',
+                    'json': 'json',
+                    'css': 'css',
+                    'html': 'html',
+                    'htm': 'html'
+                };
+                return languageMap[ext] || 'text';
+            }
+
+            // Handle file selection change
+            fileSelector.addEventListener('change', async () => {
+                if (!currentExtensionId) return;
+                
+                try {
+                    const response = await fetch('/view-extension', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            extension_id: currentExtensionId,
+                            filename: fileSelector.value
+                        })
+                    });
+
+                    const data = await response.json();
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Failed to fetch source code');
+                    }
+
+                    updateCodeDisplay(data.source, getLanguageFromFilename(fileSelector.value));
+                } catch (error) {
+                    errorMessage.textContent = error.message;
+                    errorMessage.style.display = 'block';
+                }
+            });
+
+            // Handle view button click
+            viewButton.addEventListener('click', async (e) => {
+                e.preventDefault();
+                const extensionId = extensionInput.value.trim();
+                
+                if (!extensionId) {
+                    errorMessage.textContent = 'Please enter an Extension ID or URL';
+                    errorMessage.style.display = 'block';
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/view-extension', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            extension_id: extensionId,
+                            list_files: true
+                        })
+                    });
+
+                    const data = await response.json();
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Failed to fetch source code');
+                    }
+
+                    // Update file selector
+                    fileSelector.innerHTML = data.files.map(file => 
+                        `<option value="${file}">${file}</option>`
+                    ).join('');
+
+                    currentExtensionId = extensionId;
+                    updateCodeDisplay(data.source, 'json');
+                    modal.classList.remove('hidden');
+                    errorMessage.style.display = 'none';
+                } catch (error) {
+                    errorMessage.textContent = error.message;
+                    errorMessage.style.display = 'block';
+                    console.error('Error:', error);
+                }
+            });
+
+            // Close modal
+            closeModal.addEventListener('click', () => {
+                modal.classList.add('hidden');
+            });
+
+            // Close modal when clicking outside
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.add('hidden');
+                }
+            });
+
+            // Handle escape key
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+                    modal.classList.add('hidden');
+                }
+            });
         });
     </script>
 </body>
