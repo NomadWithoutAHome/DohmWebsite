@@ -109,6 +109,26 @@ def is_font_file(filename):
     font_extensions = {'ttf', 'woff', 'woff2', 'otf', 'eot'}
     return filename.split('.')[-1].lower() in font_extensions
 
+def get_extension_name(zip_content):
+    """Extract extension name from manifest.json"""
+    try:
+        with BytesIO(zip_content) as zip_buffer, ZipFile(zip_buffer) as z:
+            try:
+                with z.open('manifest.json') as f:
+                    manifest = json.loads(f.read().decode('utf-8'))
+                    name = manifest.get('name', '').strip()
+                    # Remove special characters and spaces, keep alphanumeric and dashes
+                    sanitized_name = re.sub(r'[^\w\-]', '-', name)
+                    # Remove multiple consecutive dashes
+                    sanitized_name = re.sub(r'-+', '-', sanitized_name)
+                    # Remove leading/trailing dashes
+                    sanitized_name = sanitized_name.strip('-')
+                    return sanitized_name if sanitized_name else None
+            except (KeyError, json.JSONDecodeError):
+                return None
+    except Exception:
+        return None
+
 @app.route('/')
 def home():
     return render_template('index.html')
@@ -138,20 +158,28 @@ def download_extension():
         zip_content, error = crx_to_zip(crx_content)
         if error:
             return jsonify({'error': error}), 400
+        
+        # Get extension name from manifest
+        extension_name = get_extension_name(zip_content)
+        filename = f"{extension_name}-{extension_id}.zip" if extension_name else f"{extension_id}.zip"
             
         return send_file(
             BytesIO(zip_content),
             mimetype='application/zip',
             as_attachment=True,
-            download_name=f'{extension_id}.zip'
+            download_name=filename
         )
     else:
-        # Send as CRX
+        # For CRX, also try to get the name
+        zip_content, error = crx_to_zip(crx_content)
+        extension_name = get_extension_name(zip_content) if not error else None
+        filename = f"{extension_name}-{extension_id}.crx" if extension_name else f"{extension_id}.crx"
+        
         return send_file(
             BytesIO(crx_content),
             mimetype='application/x-chrome-extension',
             as_attachment=True,
-            download_name=f'{extension_id}.crx'
+            download_name=filename
         )
 
 @app.route('/view-extension', methods=['POST'])
