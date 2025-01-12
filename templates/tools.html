@@ -266,8 +266,14 @@
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = formData.get('extension_id') + 
-                           (formData.get('format') === 'zip' ? '.zip' : '.crx');
+                
+                // Get filename from Content-Disposition header
+                const contentDisposition = response.headers.get('Content-Disposition');
+                const filenameMatch = contentDisposition && contentDisposition.match(/filename="?([^"]+)"?/);
+                const filename = filenameMatch ? filenameMatch[1] : formData.get('extension_id') + 
+                               (formData.get('format') === 'zip' ? '.zip' : '.crx');
+                
+                a.download = filename;
                 document.body.appendChild(a);
                 a.click();
                 window.URL.revokeObjectURL(url);
