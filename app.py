@@ -129,6 +129,129 @@ def get_extension_name(zip_content):
     except Exception:
         return None
 
+def get_generic_type(filename):
+    """Get generic file type for categorization."""
+    if filename == 'manifest.json':
+        return ''  # Special case
+    
+    extension = filename.split('.')[-1].lower()
+    
+    # Code files
+    if re.match(r'^(jsx?|tsx?|wat|coffee)$', extension):
+        return 'code'
+    
+    # Image files
+    if re.match(r'^(bmp|cur|gif|ico|jpe?g|png|psd|svg|tiff?|xcf|webp)$', extension):
+        return 'images'
+    
+    # Markup files
+    if re.match(r'^(css|sass|less|html?|xhtml|xml)$', extension):
+        return 'markup'
+    
+    # Locales
+    if filename.startswith('_locales/'):
+        return 'locales'
+    
+    # Firefox specific
+    if filename in ('chrome.manifest', 'install.rdf', 'package.json'):
+        return ''
+    
+    if extension == 'jsm':
+        return 'code'
+    
+    if extension in ('xbl', 'xul'):
+        return 'markup'
+    
+    if re.match(r'locale\/.*\.(dtd|properties)$', filename, re.I):
+        return 'locales'
+    
+    return 'misc'
+
+def get_mime_type(filename):
+    """Get MIME type for a file."""
+    if re.match(r'^META-INF\/.*\.[ms]f$', filename):
+        return 'text/plain'
+        
+    if re.match(r'(^|\/)(AUTHORS|CHANGELOG|COPYING|INSTALL|LICENSE|NEWS|README|THANKS)$', filename, re.I):
+        return 'text/plain'
+        
+    extension = filename.split('.')[-1].lower()
+    if extension in ('crx', 'nex', 'xpi'):
+        return 'application/zip'
+    if extension == 'md':
+        return 'text/plain'
+        
+    # Map common extensions to MIME types
+    mime_types = {
+        'js': 'application/javascript',
+        'css': 'text/css',
+        'html': 'text/html',
+        'json': 'application/json',
+        'txt': 'text/plain',
+        'xml': 'text/xml',
+        'png': 'image/png',
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'gif': 'image/gif',
+        'webp': 'image/webp',
+        'svg': 'image/svg+xml',
+        'ttf': 'font/ttf',
+        'woff': 'font/woff',
+        'woff2': 'font/woff2',
+        'otf': 'font/otf',
+        'eot': 'application/vnd.ms-fontobject'
+    }
+    return mime_types.get(extension, 'application/octet-stream')
+
+def format_file_size(size):
+    """Format file size with appropriate units."""
+    if size < 1024:
+        return f"{size} B"
+    elif size < 1024 * 1024:
+        return f"{size/1024:.1f} KB"
+    elif size < 1024 * 1024 * 1024:
+        return f"{size/1024/1024:.1f} MB"
+    return f"{size/1024/1024/1024:.1f} GB"
+
+def get_file_metadata(zip_info):
+    """Get enhanced file metadata."""
+    return {
+        'name': zip_info.filename,
+        'size': zip_info.file_size,
+        'size_formatted': format_file_size(zip_info.file_size),
+        'compressed_size': zip_info.compress_size,
+        'type': get_generic_type(zip_info.filename),
+        'mime_type': get_mime_type(zip_info.filename),
+        'is_binary': is_binary_file(zip_info.filename),
+        'modified': zip_info.date_time
+    }
+
+def sort_files(files):
+    """Sort files by type and name with proper categorization."""
+    def get_sort_key(file):
+        name = file['name']
+        # Primary sort by file type
+        if name == 'manifest.json':
+            type_order = 0
+        elif name.startswith('_locales/'):
+            type_order = 1
+        elif get_generic_type(name) == 'code':
+            type_order = 2
+        elif get_generic_type(name) == 'markup':
+            type_order = 3
+        elif get_generic_type(name) == 'images':
+            type_order = 4
+        else:
+            type_order = 5
+            
+        # Secondary sort by directory depth
+        depth = name.count('/')
+        
+        # Tertiary sort by name
+        return (type_order, depth, name)
+    
+    return sorted(files, key=get_sort_key)
+
 @app.route('/')
 def home():
     return render_template('index.html')
@@ -210,15 +333,10 @@ def view_extension():
 
         with BytesIO(zip_content) as zip_buffer, ZipFile(zip_buffer) as z:
             if list_files:
-                files = [{'name': f, 'size': z.getinfo(f).file_size} for f in z.namelist() if not f.endswith('/')]
-                files.sort(key=lambda x: (
-                    0 if x['name'] == 'manifest.json' else
-                    1 if is_font_file(x['name']) else
-                    2 if x['name'].endswith('.js') else
-                    3 if x['name'].endswith('.css') else
-                    4 if x['name'].endswith('.html') else 5,
-                    x['name']
-                ))
+                # Get enhanced metadata for all files
+                files = [get_file_metadata(z.getinfo(f)) for f in z.namelist() if not f.endswith('/')]
+                # Sort files using our new sorting function
+                files = sort_files(files)
                 return jsonify({'files': files}), 200
 
             if not filename:
@@ -227,22 +345,19 @@ def view_extension():
             try:
                 with z.open(filename) as f:
                     content = f.read()
+                    mime_type = get_mime_type(filename)
+                    file_type = get_generic_type(filename)
 
                     if is_binary_file(filename):
                         # For binary files like images, fonts, etc.
-                        content_type = 'font' if is_font_file(filename) else 'image'
-                        if content_type == 'font':
-                            content_type = f'font/{filename.split(".")[-1]}'
-                        else:
-                            content_type = f'image/{filename.split(".")[-1]}'
-                            if content_type == 'image/jpg':
-                                content_type = 'image/jpeg'
-                        
+                        content_type = mime_type
                         data_url = f'src="data:{content_type};base64,{base64.b64encode(content).decode()}"'
                         return jsonify({
                             'content': data_url,
                             'is_binary': True,
-                            'is_image': not is_font_file(filename)
+                            'is_image': mime_type.startswith('image/'),
+                            'mime_type': mime_type,
+                            'type': file_type
                         }), 200
 
                     # For text files
@@ -267,6 +382,8 @@ def view_extension():
                         'content': chunk_content,
                         'is_binary': False,
                         'total_lines': total_lines,
+                        'mime_type': mime_type,
+                        'type': file_type,
                         'current_chunk': {
                             'start': chunk_start,
                             'end': end_line,
