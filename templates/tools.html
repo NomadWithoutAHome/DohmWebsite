@@ -314,6 +314,10 @@
                 return /\.(mp3|wav|ogg|m4a)$/i.test(filename);
             }
 
+            function is_font_file(filename) {
+                return /\.(ttf|woff|woff2|otf|eot)$/i.test(filename);
+            }
+
             // Update code with syntax highlighting
             function updateCodeDisplay(code, language, isBinary, isImage, append = false) {
                 // Clear any existing line count information at the start
@@ -325,6 +329,7 @@
                 const MAX_DISPLAY_SIZE = 100000; // Reduced to ~100KB chunks for better performance
                 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB for images
                 const MAX_AUDIO_SIZE = 10 * 1024 * 1024; // 10MB for audio
+                const MAX_FONT_SIZE = 5 * 1024 * 1024; // 5MB for fonts
                 
                 if (isBinary) {
                     // Hide load more button for binary files
@@ -435,6 +440,76 @@
                             sourceCode.textContent = 'Invalid audio data';
                             sourceCode.parentElement.classList.remove('hidden');
                         }
+                    } else if (is_font_file(fileSelector.value)) {
+                        const sizeInfo = fileSelector.options[fileSelector.selectedIndex].getAttribute('data-size');
+                        const fileSize = parseInt(sizeInfo);
+                        
+                        if (fileSize > MAX_FONT_SIZE) {
+                            sourceCode.className = 'language-text';
+                            sourceCode.textContent = 'Font file is too large to preview in browser.\nPlease download the extension to view this font.';
+                            sourceCode.parentElement.classList.remove('hidden');
+                            return;
+                        }
+
+                        // Create font preview container
+                        const fontContainer = document.createElement('div');
+                        fontContainer.className = 'flex flex-col items-center justify-center p-4 space-y-8';
+                        
+                        // Add file info
+                        const fileInfo = document.createElement('div');
+                        fileInfo.className = 'text-orange-500 text-sm';
+                        fileInfo.textContent = fileSelector.value;
+                        fontContainer.appendChild(fileInfo);
+
+                        // Create @font-face style
+                        const fontName = `preview-${Math.random().toString(36).substring(7)}`;
+                        const fontStyle = document.createElement('style');
+                        const fontExt = fileSelector.value.split('.').pop().toLowerCase();
+                        const fontFormat = {
+                            'ttf': 'truetype',
+                            'otf': 'opentype',
+                            'woff': 'woff',
+                            'woff2': 'woff2',
+                            'eot': 'embedded-opentype'
+                        }[fontExt];
+
+                        // Extract base64 font data
+                        const match = code.match(/src="data:[^;]+;base64,([^"]+)"/);
+                        if (match) {
+                            fontStyle.textContent = `
+                                @font-face {
+                                    font-family: '${fontName}';
+                                    src: url(data:font/${fontExt};base64,${match[1]}) format('${fontFormat}');
+                                }
+                            `;
+                            document.head.appendChild(fontStyle);
+
+                            // Create preview text sections
+                            const sections = [
+                                { size: '48px', text: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' },
+                                { size: '36px', text: 'abcdefghijklmnopqrstuvwxyz' },
+                                { size: '24px', text: '1234567890' },
+                                { size: '18px', text: '!@#$%^&*()_+-=[]{}\\|;:\'",.<>/?' },
+                                { size: '32px', text: 'The quick brown fox jumps over the lazy dog' }
+                            ];
+
+                            sections.forEach(section => {
+                                const preview = document.createElement('div');
+                                preview.style.fontFamily = fontName;
+                                preview.style.fontSize = section.size;
+                                preview.className = 'text-white text-center p-2 border-2 border-orange-500 rounded bg-gray-800 w-full';
+                                preview.textContent = section.text;
+                                fontContainer.appendChild(preview);
+                            });
+
+                            sourceCode.className = '';
+                            sourceCode.innerHTML = '';
+                            sourceCode.appendChild(fontContainer);
+                        } else {
+                            sourceCode.className = 'language-text';
+                            sourceCode.textContent = 'Invalid font data';
+                        }
+                        sourceCode.parentElement.classList.remove('hidden');
                     } else {
                         sourceCode.className = 'language-text';
                         sourceCode.textContent = code;
@@ -508,7 +583,7 @@
                     }
 
                     updateCodeDisplay(
-                        data.source,
+                        data.content,
                         getLanguageFromFilename(filename),
                         data.is_binary,
                         data.is_image,
@@ -592,11 +667,19 @@
                     }
 
                     // Update file selector with file type indicators and sizes
-                    updateFileSelector(data.files, data.file_types, data.file_sizes);
+                    const files = data.files.map(file => file.name);
+                    const fileTypes = {};
+                    const fileSizes = {};
+                    data.files.forEach(file => {
+                        fileTypes[file.name] = is_binary_file(file.name) ? 'binary' : 'text';
+                        fileSizes[file.name] = file.size;
+                    });
+                    updateFileSelector(files, fileTypes, fileSizes);
 
                     currentExtensionId = extensionId;
                     currentChunk = { start: 0, size: 500, total: 0 };
-                    updateCodeDisplay(data.source, 'json', false, false);
+                    // Load the first file (manifest.json) content
+                    await loadFileContent(currentExtensionId, files[0]);
                     modal.classList.remove('hidden');
                     errorMessage.style.display = 'none';
                 } catch (error) {
@@ -619,6 +702,19 @@
                     modal.classList.add('hidden');
                 }
             });
+
+            // Helper function to check if a file is binary
+            function is_binary_file(filename) {
+                const binary_extensions = new Set([
+                    // Images
+                    'png', 'jpg', 'jpeg', 'gif', 'bmp', 'ico', 'webp', 'svg',
+                    // Audio
+                    'mp3', 'wav', 'ogg', 'm4a',
+                    // Fonts
+                    'ttf', 'woff', 'woff2', 'otf', 'eot'
+                ]);
+                return binary_extensions.has(filename.split('.').pop().toLowerCase());
+            }
 
             // Handle escape key
             document.addEventListener('keydown', (e) => {
