@@ -36,11 +36,21 @@ document.getElementById('extension-form').addEventListener('submit', async (e) =
             return;
         }
         
+        // Get the filename from the Content-Disposition header if available
+        const contentDisposition = response.headers.get('Content-Disposition');
+        let filename = `${extensionId}.${format}`;
+        if (contentDisposition) {
+            const matches = /filename=(.+)/.exec(contentDisposition);
+            if (matches && matches[1]) {
+                filename = matches[1].replace(/["']/g, '');
+            }
+        }
+        
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `${extensionId}.${format}`;
+        a.download = filename;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
@@ -135,6 +145,7 @@ async function viewFile(filename) {
     lineRange.textContent = '';
     binaryNotice.style.display = 'none';
     loadMore.style.display = 'none';
+    fileContent.style.display = 'block';
     
     try {
         const extensionUrl = document.getElementById('extension-url').value;
@@ -152,11 +163,34 @@ async function viewFile(filename) {
             })
         });
         
-        if (!response.ok) {
-            throw new Error('Failed to load file content');
+        let errorText;
+        try {
+            errorText = await response.text();
+        } catch {
+            errorText = 'Failed to load file content';
         }
         
-        const data = await response.json();
+        if (!response.ok) {
+            throw new Error(errorText);
+        }
+        
+        // Try to parse the response as JSON
+        let data;
+        try {
+            data = JSON.parse(errorText);
+        } catch {
+            throw new Error('Invalid response from server');
+        }
+        
+        if (!data) {
+            throw new Error('No data received from server');
+        }
+        
+        // For text files, content might be empty but that's ok (empty file)
+        // For binary files, we need content
+        if (data.is_binary && !data.content) {
+            throw new Error('No content received for binary file');
+        }
         
         // Handle binary files
         if (data.is_binary) {
@@ -166,7 +200,7 @@ async function viewFile(filename) {
             lineRange.style.display = 'none';
             
             // Handle fonts
-            if (data.mime_type.includes('font')) {
+            if (data.mime_type && data.mime_type.includes('font')) {
                 binaryNotice.innerHTML = `
                     <div class="font-preview">
                         <style>
@@ -186,8 +220,17 @@ async function viewFile(filename) {
                 return;
             }
             
-            // Handle images
+            // Handle images with size check
             if (/^(bmp|cur|gif|ico|jpe?g|png|psd|svg|tiff?|xcf|webp)$/.test(filename.split('.').pop().toLowerCase())) {
+                // Check if image data is too large (over 5MB)
+                if (data.content.length > 5 * 1024 * 1024) {
+                    binaryNotice.innerHTML = `
+                        <div class="binary-warning">
+                            <p>⚠️ Image file is too large to preview (${(data.content.length / (1024 * 1024)).toFixed(2)}MB)</p>
+                            <p>File: ${filename.split('/').pop()}</p>
+                        </div>`;
+                    return;
+                }
                 binaryNotice.innerHTML = `<img src="data:${data.mime_type};base64,${data.content}" alt="${filename}" style="max-width: 100%; max-height: 500px;">`;
                 return;
             }
@@ -215,27 +258,30 @@ async function viewFile(filename) {
         binaryNotice.style.display = 'none';
         lineRange.style.display = 'block';
         
-        // Update line range display if we have the information
+        // Always update line range display if we have the information
         if (data.total_lines) {
             lineRange.textContent = `Lines ${data.start_line || 1}-${data.end_line || data.total_lines} of ${data.total_lines}`;
         } else {
             lineRange.style.display = 'none';
         }
         
+        // For text files, empty content is valid (empty file)
+        const content = data.content || '';
+        
         // Beautify the code based on file type
-        let beautifiedContent = data.content;
+        let beautifiedContent = content;
         const ext = filename.split('.').pop().toLowerCase();
         
-        // Only beautify if the libraries are loaded
-        if (window.js_beautify && window.css_beautify && window.html_beautify) {
+        // Only beautify if the libraries are loaded and we have content
+        if (content && window.js_beautify && window.css_beautify && window.html_beautify) {
             const opts = { indent_size: 2, preserve_newlines: true };
             
             if (['js', 'json', 'jsx', 'ts', 'tsx'].includes(ext)) {
-                beautifiedContent = js_beautify(data.content, opts);
+                beautifiedContent = js_beautify(content, opts);
             } else if (['css', 'scss', 'less'].includes(ext)) {
-                beautifiedContent = css_beautify(data.content, opts);
+                beautifiedContent = css_beautify(content, opts);
             } else if (['html', 'htm', 'xml', 'svg'].includes(ext)) {
-                beautifiedContent = html_beautify(data.content, opts);
+                beautifiedContent = html_beautify(content, opts);
             }
         }
         

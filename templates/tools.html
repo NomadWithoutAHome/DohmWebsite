@@ -4,6 +4,7 @@
 
 {% block styles %}
 <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css" rel="stylesheet" />
 <link rel="stylesheet" href="{{ url_for('static', filename='css/tools.css') }}">
 {% endblock %}
 
@@ -68,7 +69,7 @@
             <div class="flex-1 overflow-hidden flex flex-col">
                 <div id="file-content" class="flex-1 overflow-auto">
                     <div id="line-range"></div>
-                    <pre><code></code></pre>
+                    <pre class="line-numbers"><code></code></pre>
                 </div>
                 <div id="binary-notice" class="hidden">
                     This is a binary file and cannot be displayed.
@@ -88,6 +89,7 @@
 
 {% block scripts %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-css.min.js"></script>

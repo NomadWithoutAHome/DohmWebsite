@@ -4,6 +4,7 @@ import struct
 import json
 from io import BytesIO
 from zipfile import ZipFile
+from flask import send_file, make_response
 from utils.logging_config import crx_logger as logger
 
 def validate_crx(content):
@@ -39,18 +40,22 @@ def crx_to_zip(crx_content):
     try:
         is_valid, version, error = validate_crx(crx_content)
         if not is_valid:
+            logger.error(f"Invalid CRX file: {error}")
             return None, error
         
         # Get ZIP start offset
         zip_offset = get_zip_offset(crx_content, version)
+        logger.debug(f"ZIP data starts at offset: {zip_offset}")
         
         # Extract ZIP content
         zip_content = crx_content[zip_offset:]
         
         # Verify ZIP header
         if not zip_content.startswith(b'PK\x03\x04'):
+            logger.error("Invalid ZIP header in CRX file")
             return None, "Invalid ZIP data in CRX"
         
+        logger.debug(f"Successfully extracted ZIP content (size: {len(zip_content)} bytes)")
         return zip_content, None
     except Exception as e:
         logger.error(f"Error converting CRX to ZIP: {str(e)}", exc_info=True)
@@ -81,25 +86,19 @@ def safe_download_crx(extension_id):
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.5',
         'Accept-Encoding': 'gzip, deflate',
-        'Connection': 'keep-alive',
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache'
+        'Connection': 'keep-alive'
     }
     
-    params = {
-        'response': 'redirect',
-        'prodversion': '102.0.5005.61',
-        'acceptformat': 'crx2,crx3',
-        'x': f'id={extension_id}&installsource=ondemand&uc'
-    }
+    # Use the working URL format and parameters
+    url = f'https://clients2.google.com/service/update2/crx?response=redirect&acceptformat=crx2,crx3&prodversion=102.0.5005.61&x=id%3D{extension_id}%26installsource%3Dondemand%26uc'
     
     logger.debug(f"Downloading CRX for extension: {extension_id}")
     try:
         response = requests.get(
-            'https://clients2.google.com/service/update2/crx',
-            params=params,
+            url,
             headers=headers,
-            timeout=30
+            timeout=30,
+            allow_redirects=True
         )
         
         logger.debug(f"Download response status: {response.status_code}")
@@ -130,34 +129,70 @@ def safe_download_crx(extension_id):
         logger.error(f"Unexpected error: {str(e)}", exc_info=True)
         return None, f'Unexpected error: {str(e)}'
 
-def get_extension_name(zip_content):
-    """Extract extension name from manifest.json"""
+def get_extension_name(crx_content):
+    """Extract extension name from manifest.json, handling localized names."""
     try:
-        with BytesIO(zip_content) as zip_buffer, ZipFile(zip_buffer) as z:
+        zip_content, error = crx_to_zip(crx_content)
+        if not zip_content:
+            logger.error(f"Failed to convert CRX to ZIP: {error}")
+            return None
+            
+        with ZipFile(BytesIO(zip_content)) as zip_file:
+            # Read manifest.json
             try:
-                with z.open('manifest.json') as f:
-                    manifest = json.loads(f.read().decode('utf-8'))
-                    name = manifest.get('name', '').strip()
-                    
-                    # Check if name is a message placeholder
-                    if name.startswith('__MSG_') and name.endswith('__'):
-                        message_name = name[6:-2]  # Remove __MSG_ and __
-                        localized_name = get_localized_message(z, message_name)
-                        if localized_name:
-                            name = localized_name
-                    
-                    # Remove special characters and spaces, keep alphanumeric and dashes
-                    sanitized_name = re.sub(r'[^\w\-]', '-', name)
-                    # Remove multiple consecutive dashes
-                    sanitized_name = re.sub(r'-+', '-', sanitized_name)
-                    # Remove leading/trailing dashes
-                    sanitized_name = sanitized_name.strip('-')
-                    return sanitized_name if sanitized_name else None
+                manifest = json.loads(zip_file.read('manifest.json').decode('utf-8'))
             except Exception as e:
-                logger.error(f"Error reading manifest.json: {str(e)}")
+                logger.error(f"Failed to read manifest.json: {e}")
                 return None
+                
+            # Get name from manifest
+            name = manifest.get('name', '')
+            logger.debug(f"Raw name from manifest: {name}")
+            
+            # Handle localized name
+            if name.startswith('__MSG_') and name.endswith('__'):
+                locale_key = name[6:-2]  # Remove __MSG_ and __
+                logger.debug(f"Found localized name key: {locale_key}")
+                
+                try:
+                    # Try default locale first
+                    default_locale = manifest.get('default_locale', 'en')
+                    locale_path = f'_locales/{default_locale}/messages.json'
+                    logger.debug(f"Looking for locale file: {locale_path}")
+                    
+                    # Special handling for common keys
+                    if locale_key in ['extName', 'extension_name', 'extensionName', 'app_name', 'appName']:
+                        # Try multiple locale paths
+                        for locale in ['en', default_locale]:
+                            try:
+                                test_path = f'_locales/{locale}/messages.json'
+                                locale_data = json.loads(zip_file.read(test_path).decode('utf-8'))
+                                if locale_key in locale_data:
+                                    name = locale_data[locale_key]['message']
+                                    logger.debug(f"Found name in {test_path}: {name}")
+                                    break
+                            except Exception as e:
+                                logger.debug(f"Failed to read {test_path}: {e}")
+                                continue
+                    else:
+                        # Handle other localized strings
+                        locale_data = json.loads(zip_file.read(locale_path).decode('utf-8'))
+                        name = locale_data.get(locale_key, {}).get('message', '')
+                        
+                except Exception as e:
+                    logger.error(f"Failed to get localized name: {e}")
+                    name = ''
+            
+            # Sanitize the name - remove special characters and spaces
+            if name:
+                name = re.sub(r'[^\w\-]', '-', name)
+                name = re.sub(r'-+', '-', name)  # Remove multiple consecutive dashes
+                name = name.strip('-')  # Remove leading/trailing dashes
+                logger.debug(f"Sanitized name: {name}")
+            
+            return name if name else None
     except Exception as e:
-        logger.error(f"Error reading ZIP content: {str(e)}")
+        logger.error(f"Error extracting extension name: {e}")
         return None
 
 def get_localized_message(z, message_name):
@@ -300,3 +335,49 @@ def get_file_metadata(zip_info):
         'size_formatted': size_formatted,
         'type': type
     } 
+
+def download_extension(extension_id, format='crx'):
+    """Download a Chrome extension and return it in the specified format."""
+    try:
+        crx_content, error = safe_download_crx(extension_id)
+        if not crx_content:
+            return error or "Failed to download extension", 404
+            
+        # Get extension name
+        logger.debug("Attempting to extract extension name from manifest")
+        extension_name = get_extension_name(crx_content)
+        logger.debug(f"Extracted extension name: {extension_name}")
+        
+        # Create filename with extension name if available
+        filename = f"{extension_name}-{extension_id}" if extension_name else extension_id
+        logger.debug(f"Using filename: {filename}")
+        
+        if format == 'zip':
+            zip_content, error = crx_to_zip(crx_content)
+            if not zip_content:
+                return error or "Failed to convert CRX to ZIP", 400
+            content = zip_content
+            mime_type = 'application/zip'
+            filename = f"{filename}.zip"
+        else:
+            content = crx_content
+            mime_type = 'application/x-chrome-extension'
+            filename = f"{filename}.crx"
+            
+        logger.info(f"Successfully prepared {filename} for download")
+            
+        # Create response with file
+        response = make_response(send_file(
+            BytesIO(content),
+            mimetype=mime_type,
+            as_attachment=True,
+            download_name=filename
+        ))
+        
+        # Set Content-Disposition header with filename
+        response.headers['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+        
+    except Exception as e:
+        logger.error(f"Error downloading extension: {e}")
+        return str(e), 500 
