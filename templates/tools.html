@@ -129,6 +129,24 @@
             background: #fb8c00;
         }
         
+        /* Audio Player Styling */
+        audio::-webkit-media-controls-panel {
+            background-color: #1a1a1a;
+            border: 2px solid #f97316;
+        }
+        audio::-webkit-media-controls-current-time-display,
+        audio::-webkit-media-controls-time-remaining-display {
+            color: #f97316;
+        }
+        audio::-webkit-media-controls-play-button,
+        audio::-webkit-media-controls-mute-button {
+            filter: invert(60%) sepia(94%) saturate(3000%) hue-rotate(360deg);
+        }
+        audio::-webkit-media-controls-volume-slider,
+        audio::-webkit-media-controls-timeline {
+            filter: hue-rotate(300deg) saturate(200%);
+        }
+
         /* Hide scrollbar for Firefox */
         * {
             scrollbar-width: none;
@@ -354,9 +372,9 @@
                         const audioContainer = document.createElement('div');
                         audioContainer.className = 'flex flex-col items-center justify-center p-4 space-y-4';
                         
-                        // Add file info
+                        // Add file info with retro font
                         const fileInfo = document.createElement('div');
-                        fileInfo.className = 'text-orange-500 text-sm';
+                        fileInfo.className = 'text-orange-500 text-sm font-["Press_Start_2P"]';
                         fileInfo.textContent = fileSelector.value;
                         audioContainer.appendChild(fileInfo);
 
@@ -365,34 +383,33 @@
                         audio.controls = true;
                         audio.className = 'w-full max-w-md';
                         audio.style.height = '40px';
-                        
-                        // Add custom styling to audio element
+
+                        // Add custom styling
                         const audioStyle = document.createElement('style');
                         audioStyle.textContent = `
                             audio::-webkit-media-controls-panel {
-                                background-color: #1a1a1a;
-                                border: 2px solid #f97316;
+                                background-color: #1a1a1a !important;
+                                border: 2px solid #f97316 !important;
                             }
                             audio::-webkit-media-controls-current-time-display,
                             audio::-webkit-media-controls-time-remaining-display {
-                                color: #f97316;
+                                color: #f97316 !important;
                             }
                             audio::-webkit-media-controls-play-button,
                             audio::-webkit-media-controls-mute-button {
-                                filter: invert(60%) sepia(94%) saturate(3000%) hue-rotate(360deg);
+                                filter: invert(60%) sepia(94%) saturate(3000%) hue-rotate(360deg) !important;
                             }
                             audio::-webkit-media-controls-volume-slider,
                             audio::-webkit-media-controls-timeline {
-                                filter: hue-rotate(300deg) saturate(200%);
+                                filter: hue-rotate(300deg) saturate(200%) !important;
                             }
                         `;
                         document.head.appendChild(audioStyle);
                         
                         // Extract base64 audio data
-                        const match = code.match(/src="data:[^;]+;base64,([^"]+)"/);
+                        const match = code.match(/data:[^;]+;base64,([^"]+)/);
                         if (match) {
-                            const fileExt = fileSelector.value.split('.').pop().toLowerCase();
-                            audio.src = `data:audio/${fileExt};base64,${match[1]}`;
+                            audio.src = `data:audio/${fileSelector.value.split('.').pop()};base64,${match[1]}`;
                             audioContainer.appendChild(audio);
                             
                             sourceCode.className = '';

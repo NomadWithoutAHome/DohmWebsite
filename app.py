@@ -351,14 +351,43 @@ def view_extension():
                     if is_binary_file(filename):
                         # For binary files like images, fonts, etc.
                         content_type = mime_type
-                        data_url = f'src="data:{content_type};base64,{base64.b64encode(content).decode()}"'
-                        return jsonify({
-                            'content': data_url,
-                            'is_binary': True,
-                            'is_image': mime_type.startswith('image/'),
-                            'mime_type': mime_type,
-                            'type': file_type
-                        }), 200
+                        if mime_type.startswith('audio/'):
+                            data_url = f'data:{content_type};base64,{base64.b64encode(content).decode()}'
+                            return jsonify({
+                                'content': data_url,
+                                'is_binary': True,
+                                'is_audio': True,
+                                'mime_type': mime_type,
+                                'type': file_type,
+                                'filename': filename,
+                                'custom_style': """
+                                    audio::-webkit-media-controls-panel {
+                                        background-color: #1a1a1a;
+                                        border: 2px solid #f97316;
+                                    }
+                                    audio::-webkit-media-controls-current-time-display,
+                                    audio::-webkit-media-controls-time-remaining-display {
+                                        color: #f97316;
+                                    }
+                                    audio::-webkit-media-controls-play-button,
+                                    audio::-webkit-media-controls-mute-button {
+                                        filter: invert(60%) sepia(94%) saturate(3000%) hue-rotate(360deg);
+                                    }
+                                    audio::-webkit-media-controls-volume-slider,
+                                    audio::-webkit-media-controls-timeline {
+                                        filter: hue-rotate(300deg) saturate(200%);
+                                    }
+                                """
+                            }), 200
+                        else:
+                            data_url = f'src="data:{content_type};base64,{base64.b64encode(content).decode()}"'
+                            return jsonify({
+                                'content': data_url,
+                                'is_binary': True,
+                                'is_image': mime_type.startswith('image/'),
+                                'mime_type': mime_type,
+                                'type': file_type
+                            }), 200
 
                     # For text files
                     try:
