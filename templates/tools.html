@@ -103,6 +103,36 @@
         .token.number { color: #60a5fa !important; }
         .token.property { color: #34d399 !important; }
         .line-numbers .line-numbers-rows { border-right: 2px solid #f97316 !important; }
+
+        /* Custom Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 12px;
+            height: 12px;
+            display: none;
+        }
+        *:hover::-webkit-scrollbar {
+            display: block;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1a1a1a;
+            border: 2px solid #f97316;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #f4511e;
+            border: 2px solid #fb8c00;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #fb8c00;
+        }
+        
+        /* Hide scrollbar for Firefox */
+        * {
+            scrollbar-width: none;
+        }
+        *:hover {
+            scrollbar-width: thin;
+            scrollbar-color: #f4511e #1a1a1a;
+        }
     </style>
 </head>
 <body class="text-white">
@@ -160,8 +190,14 @@
                             </div>
                             <button id="close-modal" class="retro-button px-4">CLOSE</button>
                         </div>
-                        <div class="p-4 h-[calc(100%-5rem)] overflow-auto">
+                        <div class="p-4 h-[calc(100%-5rem)] overflow-auto" id="code-container">
+                            <div id="loading-indicator" class="hidden text-center p-4">
+                                <div class="text-orange-500 text-xl animate-pulse">LOADING...</div>
+                            </div>
                             <pre id="source-code" class="line-numbers"><code class="language-json"></code></pre>
+                            <div id="load-more" class="hidden text-center mt-4">
+                                <button class="retro-button">LOAD MORE</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -240,15 +276,16 @@
             const fileSelector = document.getElementById('file-selector');
             const errorMessage = document.getElementById('error-message');
             const extensionInput = document.getElementById('extension-id');
+            const loadingIndicator = document.getElementById('loading-indicator');
+            const loadMoreBtn = document.getElementById('load-more');
+            const codeContainer = document.getElementById('code-container');
 
             let currentExtensionId = '';
-
-            // Update code with syntax highlighting
-            function updateCodeDisplay(code, language) {
-                sourceCode.className = `language-${language}`;
-                sourceCode.textContent = code;
-                Prism.highlightElement(sourceCode);
-            }
+            let currentChunk = {
+                start: 0,
+                size: 1000,
+                total: 0
+            };
 
             // Get file extension and map to Prism language
             function getLanguageFromFilename(filename) {
@@ -263,19 +300,113 @@
                 return languageMap[ext] || 'text';
             }
 
-            // Handle file selection change
-            fileSelector.addEventListener('change', async () => {
-                if (!currentExtensionId) return;
+            function showLoading(show) {
+                loadingIndicator.classList.toggle('hidden', !show);
+                if (show) {
+                    sourceCode.parentElement.classList.add('hidden');
+                    loadMoreBtn.classList.add('hidden');
+                }
+            }
+
+            // Update code with syntax highlighting
+            function updateCodeDisplay(code, language, isBinary, isImage, append = false) {
+                const MAX_DISPLAY_SIZE = 100000; // Reduced to ~100KB chunks for better performance
                 
+                if (isBinary) {
+                    if (isImage) {
+                        const sizeInfo = fileSelector.options[fileSelector.selectedIndex].getAttribute('data-size');
+                        const fileSize = parseInt(sizeInfo);
+                        
+                        if (fileSize > MAX_IMAGE_SIZE) {
+                            sourceCode.className = 'language-text';
+                            sourceCode.textContent = 'Image is too large to preview in browser.\nPlease download the extension to view this image.';
+                            sourceCode.parentElement.classList.remove('hidden');
+                            return;
+                        }
+
+                        // Create image element and add loading handler
+                        const img = new Image();
+                        img.onload = () => {
+                            sourceCode.className = '';
+                            sourceCode.innerHTML = ''; // Clear existing content
+                            sourceCode.appendChild(img);
+                            sourceCode.parentElement.classList.remove('hidden');
+                            showLoading(false);
+                        };
+                        img.onerror = () => {
+                            sourceCode.className = 'language-text';
+                            sourceCode.textContent = 'Failed to load image preview.';
+                            sourceCode.parentElement.classList.remove('hidden');
+                            showLoading(false);
+                        };
+                        img.className = 'max-w-full h-auto';
+                        img.alt = fileSelector.value;
+                        showLoading(true);
+                        img.src = code.match(/src="([^"]+)"/)[1];
+                    } else {
+                        sourceCode.className = 'language-text';
+                        sourceCode.textContent = code;
+                        sourceCode.parentElement.classList.remove('hidden');
+                    }
+                } else {
+                    // Defer syntax highlighting to next animation frame
+                    requestAnimationFrame(() => {
+                        if (!append) {
+                            sourceCode.textContent = '';
+                            sourceCode.className = `language-${language}`;
+                        }
+                        
+                        // Use a temporary div to process the new content
+                        const tempDiv = document.createElement('div');
+                        tempDiv.textContent = code;
+                        
+                        // Append the new content
+                        if (append) {
+                            sourceCode.textContent += '\n' + tempDiv.textContent;
+                        } else {
+                            sourceCode.textContent = tempDiv.textContent;
+                        }
+                        
+                        // Apply syntax highlighting
+                        Prism.highlightElement(sourceCode);
+                        sourceCode.parentElement.classList.remove('hidden');
+                    });
+                }
+            }
+
+            // Load file content
+            async function loadFileContent(extensionId, filename, startLine = 0, append = false) {
+                showLoading(true);
                 try {
+                    // Check file size before loading
+                    if (!append) {
+                        const sizeInfo = fileSelector.options[fileSelector.selectedIndex].getAttribute('data-size');
+                        const fileSize = parseInt(sizeInfo);
+                        const isImage = /\.(png|jpe?g|gif|webp|bmp|ico)$/i.test(filename);
+                        const MAX_FILE_SIZE = isImage ? 5 * 1024 * 1024 : 2 * 1024 * 1024; // 5MB for images, 2MB for others
+                        
+                        if (fileSize > MAX_FILE_SIZE) {
+                            updateCodeDisplay(
+                                `File is too large to view in browser (${(fileSize/1024/1024).toFixed(1)}MB).\nPlease download the extension to view this file.`,
+                                'text',
+                                false,
+                                false
+                            );
+                            showLoading(false);
+                            return;
+                        }
+                    }
+
                     const response = await fetch('/view-extension', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                         },
                         body: JSON.stringify({
-                            extension_id: currentExtensionId,
-                            filename: fileSelector.value
+                            extension_id: extensionId,
+                            filename: filename,
+                            chunk_start: startLine,
+                            chunk_size: 500 // Reduced chunk size for better performance
                         })
                     });
 
@@ -284,11 +415,53 @@
                         throw new Error(data.error || 'Failed to fetch source code');
                     }
 
-                    updateCodeDisplay(data.source, getLanguageFromFilename(fileSelector.value));
+                    updateCodeDisplay(
+                        data.source,
+                        getLanguageFromFilename(filename),
+                        data.is_binary,
+                        data.is_image,
+                        append
+                    );
+
+                    if (data.current_chunk) {
+                        currentChunk = {
+                            start: data.current_chunk.end,
+                            size: data.current_chunk.size,
+                            total: data.total_lines
+                        };
+                        
+                        // Show/hide load more button
+                        const isLastChunk = data.current_chunk.end >= data.total_lines;
+                        loadMoreBtn.classList.toggle('hidden', isLastChunk);
+                        
+                        // Add line count information
+                        const lineCountInfo = document.createElement('div');
+                        lineCountInfo.className = 'text-gray-500 text-sm mt-2 text-center';
+                        lineCountInfo.textContent = `Showing lines ${data.current_chunk.start + 1} to ${data.current_chunk.end} of ${data.total_lines}`;
+                        sourceCode.parentElement.appendChild(lineCountInfo);
+                    } else {
+                        loadMoreBtn.classList.add('hidden');
+                    }
+
                 } catch (error) {
                     errorMessage.textContent = error.message;
                     errorMessage.style.display = 'block';
+                } finally {
+                    showLoading(false);
                 }
+            }
+
+            // Handle file selection change
+            fileSelector.addEventListener('change', async () => {
+                if (!currentExtensionId) return;
+                currentChunk = { start: 0, size: 1000, total: 0 };
+                await loadFileContent(currentExtensionId, fileSelector.value);
+            });
+
+            // Handle load more button
+            loadMoreBtn.addEventListener('click', async () => {
+                await loadFileContent(currentExtensionId, fileSelector.value, 
+                    currentChunk.start, true);
             });
 
             // Handle view button click
@@ -303,6 +476,7 @@
                 }
 
                 try {
+                    showLoading(true);
                     const response = await fetch('/view-extension', {
                         method: 'POST',
                         headers: {
@@ -319,19 +493,20 @@
                         throw new Error(data.error || 'Failed to fetch source code');
                     }
 
-                    // Update file selector
-                    fileSelector.innerHTML = data.files.map(file => 
-                        `<option value="${file}">${file}</option>`
-                    ).join('');
+                    // Update file selector with file type indicators and sizes
+                    updateFileSelector(data.files, data.file_types, data.file_sizes);
 
                     currentExtensionId = extensionId;
-                    updateCodeDisplay(data.source, 'json');
+                    currentChunk = { start: 0, size: 1000, total: 0 };
+                    updateCodeDisplay(data.source, 'json', false, false);
                     modal.classList.remove('hidden');
                     errorMessage.style.display = 'none';
                 } catch (error) {
                     errorMessage.textContent = error.message;
                     errorMessage.style.display = 'block';
                     console.error('Error:', error);
+                } finally {
+                    showLoading(false);
                 }
             });
 
@@ -353,6 +528,19 @@
                     modal.classList.add('hidden');
                 }
             });
+
+            // Update file selector with size information
+            function updateFileSelector(files, fileTypes, fileSizes) {
+                fileSelector.innerHTML = files.map(file => {
+                    const fileType = fileTypes[file];
+                    const size = fileSizes[file];
+                    const sizeStr = size < 1024 ? `${size}B` :
+                                  size < 1024 * 1024 ? `${(size/1024).toFixed(1)}KB` :
+                                  `${(size/1024/1024).toFixed(1)}MB`;
+                    const icon = fileType === 'binary' ? '📁' : '📄';
+                    return `<option value="${file}" data-size="${size}">${icon} ${file} (${sizeStr})</option>`;
+                }).join('');
+            }
         });
     </script>
 </body>

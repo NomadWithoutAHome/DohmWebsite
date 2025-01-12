@@ -91,6 +91,17 @@ def safe_download_crx(extension_id):
     except Exception as e:
         return None, f"Unexpected error: {str(e)}"
 
+def is_binary_file(filename):
+    """Check if a file is likely to be binary based on its extension."""
+    binary_extensions = {
+        'png', 'jpg', 'jpeg', 'gif', 'ico', 'webp', 'bmp',  # Images
+        'pdf', 'doc', 'docx',  # Documents
+        'zip', 'rar', '7z',    # Archives
+        'exe', 'dll',          # Executables
+        'ttf', 'woff', 'woff2' # Fonts
+    }
+    return filename.split('.')[-1].lower() in binary_extensions
+
 @app.route('/')
 def home():
     return render_template('index.html')
@@ -143,75 +154,112 @@ def view_extension():
         url_or_id = data.get('extension_id')
         filename = data.get('filename')
         list_files = data.get('list_files', False)
+        chunk_start = data.get('chunk_start', 0)  # Line number to start from
+        chunk_size = data.get('chunk_size', 1000)  # Number of lines per chunk
         
         if not url_or_id:
             return jsonify({'error': 'Extension ID or URL is required'}), 400
 
-        # Use the same extraction method as download function
         extension_id = extract_extension_id(url_or_id)
         if not extension_id:
             return jsonify({'error': 'Invalid extension ID or URL'}), 400
 
-        # Use the same download function as the working download route
         crx_content, error = safe_download_crx(extension_id)
         if error:
             return jsonify({'error': error}), 400
 
-        # Convert CRX to ZIP
         zip_content, error = crx_to_zip(crx_content)
         if error:
             return jsonify({'error': error}), 400
             
-        # Process the ZIP content
         try:
             with zipfile.ZipFile(BytesIO(zip_content)) as z:
-                # If list_files is True, return list of files
                 if list_files:
                     files = [f for f in z.namelist() if not f.endswith('/')]
-                    # Filter and sort files by type
                     def file_sort_key(f):
-                        # Prioritize manifest.json, then group by extension
                         if f == 'manifest.json':
                             return (0, f)
+                        is_binary = is_binary_file(f)
                         ext = f.split('.')[-1].lower()
-                        # Order: js, html, css, others
-                        type_order = {'js': 1, 'html': 2, 'css': 3}
-                        return (type_order.get(ext, 4), f)
+                        type_order = {
+                            'js': 1, 
+                            'html': 2, 'htm': 2,
+                            'css': 3
+                        }
+                        return (type_order.get(ext, 5 if is_binary else 4), f)
                     
                     files.sort(key=file_sort_key)
                     
-                    # Read manifest.json as default file
+                    # Get file sizes
+                    file_sizes = {f: z.getinfo(f).file_size for f in files}
+                    
                     manifest = z.read('manifest.json').decode('utf-8')
                     manifest_dict = json.loads(manifest)
                     formatted_manifest = json.dumps(manifest_dict, indent=2)
                     
                     return jsonify({
                         'files': files,
-                        'source': formatted_manifest
+                        'source': formatted_manifest,
+                        'file_types': {f: 'binary' if is_binary_file(f) else 'text' for f in files},
+                        'file_sizes': file_sizes
                     })
                 
-                # If filename is provided, read that specific file
                 if filename:
                     if filename not in z.namelist():
                         return jsonify({'error': f'File {filename} not found'}), 404
                     
+                    if is_binary_file(filename):
+                        file_content = z.read(filename)
+                        if filename.split('.')[-1].lower() in ['png', 'jpg', 'jpeg', 'gif', 'ico', 'webp', 'bmp']:
+                            import base64
+                            b64_content = base64.b64encode(file_content).decode()
+                            return jsonify({
+                                'source': f'<img src="data:image/{filename.split(".")[-1]};base64,{b64_content}" alt="{filename}" style="max-width: 100%; height: auto;">',
+                                'is_binary': True,
+                                'is_image': True
+                            })
+                        return jsonify({
+                            'source': '[Binary file content not displayed]',
+                            'is_binary': True,
+                            'is_image': False
+                        })
+                    
+                    # For text files, implement chunked reading
                     content = z.read(filename).decode('utf-8')
+                    lines = content.splitlines()
+                    total_lines = len(lines)
                     
-                    # Pretty print JSON files
-                    if filename.endswith('.json'):
+                    # Calculate chunk information
+                    start_line = max(0, min(chunk_start, total_lines))
+                    end_line = min(start_line + chunk_size, total_lines)
+                    chunk_content = '\n'.join(lines[start_line:end_line])
+                    
+                    # Format JSON if needed
+                    if filename.endswith('.json') and chunk_start == 0:  # Only format if it's the first chunk
                         try:
-                            content_dict = json.loads(content)
-                            content = json.dumps(content_dict, indent=2)
+                            content_dict = json.loads(chunk_content)
+                            chunk_content = json.dumps(content_dict, indent=2)
                         except json.JSONDecodeError:
-                            pass  # If JSON is invalid, return as is
+                            pass
                     
-                    return jsonify({'source': content})
+                    return jsonify({
+                        'source': chunk_content,
+                        'is_binary': False,
+                        'total_lines': total_lines,
+                        'current_chunk': {
+                            'start': start_line,
+                            'end': end_line,
+                            'size': chunk_size
+                        }
+                    })
                 
-                # Default to manifest.json
                 manifest = z.read('manifest.json').decode('utf-8')
                 manifest_dict = json.loads(manifest)
                 formatted_manifest = json.dumps(manifest_dict, indent=2)
-                return jsonify({'source': formatted_manifest})
+                return jsonify({
+                    'source': formatted_manifest,
+                    'is_binary': False
+                })
                 
         except Exception as e:
             return jsonify({'error': f'Failed to read file: {str(e)}'}), 400
