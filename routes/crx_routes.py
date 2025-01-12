@@ -1,170 +1,139 @@
-from flask import Blueprint, request, send_file, jsonify
+from flask import Blueprint, request, jsonify, send_file
 from io import BytesIO
 from zipfile import ZipFile
-import base64
-
 from services.crx_service import (
-    extract_extension_id, safe_download_crx, crx_to_zip, 
-    get_extension_name
+    extract_extension_id, safe_download_crx, crx_to_zip,
+    get_extension_name, get_file_metadata, is_binary_file,
+    get_mime_type, get_language_from_filename
 )
-from utils.file_utils import (
-    is_binary_file, get_mime_type, get_generic_type,
-    format_file_size
-)
+from utils.logging_config import crx_logger as logger
 
 crx = Blueprint('crx', __name__)
 
-@crx.route('/download-crx', methods=['POST'])
-def download_crx():
-    """Handle CRX download requests."""
+@crx.route('/download-extension', methods=['POST'])
+def download_extension():
     try:
-        url_or_id = request.form.get('extension_id', '').strip()
-        output_format = request.form.get('format', 'crx')
+        data = request.get_json()
+        logger.debug(f"Download request data: {data}")
         
-        extension_id = extract_extension_id(url_or_id)
+        extension_id = extract_extension_id(data.get('extension_id'))
+        format = data.get('format', 'crx')
+        
         if not extension_id:
-            return jsonify({'error': 'Invalid extension ID or URL'}), 400
+            logger.error("Invalid extension ID provided")
+            return 'Invalid extension ID', 400
             
+        logger.debug(f"Downloading extension {extension_id} in {format} format")
         crx_content, error = safe_download_crx(extension_id)
         if error:
-            return jsonify({'error': error}), 400
+            logger.error(f"Error downloading CRX: {error}")
+            return error, 400
             
-        if output_format == 'zip':
+        if format == 'zip':
+            logger.debug("Converting CRX to ZIP")
             zip_content, error = crx_to_zip(crx_content)
             if error:
-                return jsonify({'error': error}), 400
+                logger.error(f"Error converting to ZIP: {error}")
+                return error, 400
             content = zip_content
-            ext = 'zip'
+            mime_type = 'application/zip'
         else:
             content = crx_content
-            ext = 'crx'
-            
-        # Try to get extension name for filename
+            mime_type = 'application/x-chrome-extension'
+        
+        # Get extension name for filename
         name = None
-        if output_format == 'zip':
+        if format == 'zip':
             name = get_extension_name(content)
-            
-        filename = f"{name or extension_id}.{ext}"
+            logger.debug(f"Got extension name: {name}")
+        
+        filename = f"{name or extension_id}.{format}"
+        logger.info(f"Successfully prepared {filename} for download")
         
         return send_file(
             BytesIO(content),
-            mimetype='application/zip',
+            mimetype=mime_type,
             as_attachment=True,
             download_name=filename
         )
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Unexpected error in download_extension: {str(e)}", exc_info=True)
+        return 'Internal server error', 500
 
 @crx.route('/view-extension', methods=['POST'])
 def view_extension():
-    """Handle extension viewing requests."""
     try:
         data = request.get_json()
-        extension_id = data.get('extension_id')
+        logger.debug(f"View request data: {data}")
+        
+        url_or_id = data.get('id')
+        logger.debug(f"Extracting extension ID from: {url_or_id}")
+        extension_id = extract_extension_id(url_or_id)
+        filename = data.get('filename')
+        offset = data.get('offset', 0)
         
         if not extension_id:
-            return jsonify({'error': 'Extension ID is required'}), 400
+            logger.error("Invalid extension ID provided")
+            return 'Invalid extension ID', 400
             
-        # If list_files is True, return file list
-        if data.get('list_files'):
+        # If no filename, return file list
+        if not filename:
+            logger.debug(f"Getting file list for extension {extension_id}")
             crx_content, error = safe_download_crx(extension_id)
             if error:
-                return jsonify({'error': error}), 400
+                logger.error(f"Error downloading CRX: {error}")
+                return error, 400
                 
             zip_content, error = crx_to_zip(crx_content)
             if error:
-                return jsonify({'error': error}), 400
+                logger.error(f"Error converting to ZIP: {error}")
+                return error, 400
                 
-            files = []
-            with BytesIO(zip_content) as zip_buffer, ZipFile(zip_buffer) as z:
-                for info in z.filelist:
-                    if not info.filename.endswith('/'):  # Skip directories
-                        files.append({
-                            'name': info.filename,
-                            'size': info.file_size,
-                            'size_formatted': format_file_size(info.file_size),
-                            'compress_size': info.compress_size,
-                            'type': get_generic_type(info.filename),
-                            'mime_type': get_mime_type(info.filename),
-                            'is_binary': is_binary_file(info.filename),
-                            'date_time': info.date_time
-                        })
-            return jsonify({'files': files})
-            
-        # Otherwise, return file content
-        filename = data.get('filename')
-        if not filename:
-            return jsonify({'error': 'Filename is required'}), 400
-            
-        chunk_start = data.get('chunk_start', 0)
-        chunk_size = min(data.get('chunk_size', 500), 1000)  # Limit chunk size
+            with BytesIO(zip_content) as bio, ZipFile(bio) as z:
+                files = [get_file_metadata(info) for info in z.filelist]
+                logger.info(f"Found {len(files)} files in extension")
+                return jsonify({'files': files})
         
-        crx_content, error = safe_download_crx(extension_id)
-        if error:
-            return jsonify({'error': error}), 400
-            
-        zip_content, error = crx_to_zip(crx_content)
-        if error:
-            return jsonify({'error': error}), 400
-            
-        with BytesIO(zip_content) as zip_buffer, ZipFile(zip_buffer) as z:
-            try:
-                info = z.getinfo(filename)
-                content = z.read(filename)
+        # If filename provided, return file content
+        logger.debug(f"Getting content for file: {filename}")
+        try:
+            crx_content, error = safe_download_crx(extension_id)
+            if error:
+                logger.error(f"Error downloading CRX: {error}")
+                return error, 400
                 
-                is_binary = is_binary_file(filename)
-                mime_type = get_mime_type(filename)
+            zip_content, error = crx_to_zip(crx_content)
+            if error:
+                logger.error(f"Error converting to ZIP: {error}")
+                return error, 400
                 
-                if is_binary:
-                    if mime_type.startswith('image/'):
-                        # For images, return base64 data URL
-                        data_url = f"data:{mime_type};base64,{base64.b64encode(content).decode()}"
-                        return jsonify({
-                            'is_binary': True,
-                            'is_image': True,
-                            'content': data_url,
-                            'mime_type': mime_type
-                        })
-                    elif mime_type.startswith('audio/'):
-                        # For audio, return base64 data URL
-                        data_url = f"data:{mime_type};base64,{base64.b64encode(content).decode()}"
-                        return jsonify({
-                            'is_binary': True,
-                            'is_audio': True,
-                            'content': data_url,
-                            'mime_type': mime_type
-                        })
-                    else:
-                        return jsonify({
-                            'is_binary': True,
-                            'error': 'Binary file cannot be displayed'
-                        })
-                
-                # For text files, return the requested chunk
-                try:
-                    text_content = content.decode('utf-8')
-                except UnicodeDecodeError:
-                    return jsonify({'error': 'File encoding not supported'}), 400
+            with BytesIO(zip_content) as bio, ZipFile(bio) as z:
+                with z.open(filename) as f:
+                    content = f.read()
                     
-                lines = text_content.splitlines()
-                total_lines = len(lines)
-                
-                end = min(chunk_start + chunk_size, total_lines)
-                chunk = '\n'.join(lines[chunk_start:end])
-                
+                if is_binary_file(filename):
+                    logger.debug(f"File {filename} is binary")
+                    return jsonify({
+                        'is_binary': True,
+                        'mime_type': get_mime_type(filename)
+                    })
+                    
+                # Handle text files
+                text_content = content.decode('utf-8')
+                if offset:
+                    text_content = text_content[offset:]
+                    
+                logger.debug(f"Returning content for {filename} (offset: {offset})")
                 return jsonify({
-                    'content': chunk,
-                    'mime_type': mime_type,
-                    'total_lines': total_lines,
-                    'current_chunk': {
-                        'start': chunk_start,
-                        'end': end,
-                        'size': chunk_size
-                    }
+                    'is_binary': False,
+                    'content': text_content,
+                    'language': get_language_from_filename(filename),
+                    'has_more': len(text_content) >= 50000,
+                    'next_offset': offset + 50000 if len(text_content) >= 50000 else None
                 })
-            except KeyError:
-                return jsonify({'error': 'File not found in extension'}), 404
-            except Exception as e:
-                return jsonify({'error': str(e)}), 500
+        except Exception as e:
+            logger.error(f"Error reading file {filename}: {str(e)}", exc_info=True)
+            return str(e), 500
     except Exception as e:
-        return jsonify({'error': str(e)}), 500 
+        logger.error(f"Unexpected error in view_extension: {str(e)}", exc_info=True)
+        return 'Internal server error', 500 
