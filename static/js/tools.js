@@ -130,6 +130,12 @@ async function viewFile(filename) {
     const code = fileContent.querySelector('code');
     const lineRange = document.getElementById('line-range');
     
+    // Clear previous content and show loading state
+    code.textContent = 'Loading...';
+    lineRange.textContent = '';
+    binaryNotice.style.display = 'none';
+    loadMore.style.display = 'none';
+    
     try {
         const extensionUrl = document.getElementById('extension-url').value;
         const extensionId = extractExtensionId(extensionUrl);
@@ -209,8 +215,12 @@ async function viewFile(filename) {
         binaryNotice.style.display = 'none';
         lineRange.style.display = 'block';
         
-        // Update line range display
-        lineRange.textContent = `Lines ${data.start_line}-${data.end_line} of ${data.total_lines}`;
+        // Update line range display if we have the information
+        if (data.total_lines) {
+            lineRange.textContent = `Lines ${data.start_line || 1}-${data.end_line || data.total_lines} of ${data.total_lines}`;
+        } else {
+            lineRange.style.display = 'none';
+        }
         
         // Beautify the code based on file type
         let beautifiedContent = data.content;
@@ -236,12 +246,18 @@ async function viewFile(filename) {
         
         // Show/hide load more button
         loadMore.style.display = data.has_more ? 'block' : 'none';
-        loadMore.dataset.offset = data.next_offset;
-        loadMore.dataset.filename = filename;
-        loadMore.dataset.current_line = data.end_line;
+        if (data.has_more) {
+            loadMore.dataset.offset = data.next_offset;
+            loadMore.dataset.filename = filename;
+            loadMore.dataset.current_line = data.end_line;
+        }
     } catch (error) {
         console.error('File view error:', error);
         showError(error.message || 'Failed to load file content');
+        
+        // Clear content on error
+        code.textContent = '';
+        lineRange.textContent = '';
     }
 }
 
