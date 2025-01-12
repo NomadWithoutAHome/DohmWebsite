@@ -335,47 +335,7 @@
                     // Hide load more button for binary files
                     loadMoreBtn.classList.add('hidden');
 
-                    if (isImage) {
-                        const sizeInfo = fileSelector.options[fileSelector.selectedIndex].getAttribute('data-size');
-                        const fileSize = parseInt(sizeInfo);
-                        
-                        if (fileSize > MAX_IMAGE_SIZE) {
-                            sourceCode.className = 'language-text';
-                            sourceCode.textContent = 'Image is too large to preview in browser.\nPlease download the extension to view this image.';
-                            sourceCode.parentElement.classList.remove('hidden');
-                            return;
-                        }
-
-                        // Create image element and add loading handler
-                        const img = new Image();
-                        img.onload = () => {
-                            sourceCode.className = 'flex justify-center items-center p-4';
-                            sourceCode.innerHTML = ''; // Clear existing content
-                            img.style.maxHeight = '70vh'; // Limit image height
-                            sourceCode.appendChild(img);
-                            sourceCode.parentElement.classList.remove('hidden');
-                            showLoading(false);
-                        };
-                        img.onerror = () => {
-                            sourceCode.className = 'language-text';
-                            sourceCode.textContent = 'Failed to load image preview.';
-                            sourceCode.parentElement.classList.remove('hidden');
-                            showLoading(false);
-                        };
-                        img.className = 'max-w-full object-contain rounded border-2 border-orange-500';
-                        img.alt = fileSelector.value;
-                        showLoading(true);
-                        // Extract base64 image data
-                        const match = code.match(/src="data:image\/[^;]+;base64,([^"]+)"/);
-                        if (match) {
-                            img.src = `data:image/${fileSelector.value.split('.').pop()};base64,${match[1]}`;
-                        } else {
-                            sourceCode.className = 'language-text';
-                            sourceCode.textContent = 'Invalid image data';
-                            sourceCode.parentElement.classList.remove('hidden');
-                            showLoading(false);
-                        }
-                    } else if (is_audio_file(fileSelector.value)) {
+                    if (is_audio_file(fileSelector.value)) {
                         const sizeInfo = fileSelector.options[fileSelector.selectedIndex].getAttribute('data-size');
                         const fileSize = parseInt(sizeInfo);
                         
@@ -423,7 +383,7 @@
                             }
                         `;
                         document.head.appendChild(audioStyle);
-
+                        
                         // Extract base64 audio data
                         const match = code.match(/src="data:[^;]+;base64,([^"]+)"/);
                         if (match) {
@@ -439,6 +399,46 @@
                             sourceCode.className = 'language-text';
                             sourceCode.textContent = 'Invalid audio data';
                             sourceCode.parentElement.classList.remove('hidden');
+                        }
+                    } else if (isImage) {
+                        const sizeInfo = fileSelector.options[fileSelector.selectedIndex].getAttribute('data-size');
+                        const fileSize = parseInt(sizeInfo);
+                        
+                        if (fileSize > MAX_IMAGE_SIZE) {
+                            sourceCode.className = 'language-text';
+                            sourceCode.textContent = 'Image is too large to preview in browser.\nPlease download the extension to view this image.';
+                            sourceCode.parentElement.classList.remove('hidden');
+                            return;
+                        }
+
+                        // Create image element and add loading handler
+                        const img = new Image();
+                        img.onload = () => {
+                            sourceCode.className = 'flex justify-center items-center p-4';
+                            sourceCode.innerHTML = ''; // Clear existing content
+                            img.style.maxHeight = '70vh'; // Limit image height
+                            sourceCode.appendChild(img);
+                            sourceCode.parentElement.classList.remove('hidden');
+                            showLoading(false);
+                        };
+                        img.onerror = () => {
+                            sourceCode.className = 'language-text';
+                            sourceCode.textContent = 'Failed to load image preview.';
+                            sourceCode.parentElement.classList.remove('hidden');
+                            showLoading(false);
+                        };
+                        img.className = 'max-w-full object-contain rounded border-2 border-orange-500';
+                        img.alt = fileSelector.value;
+                        showLoading(true);
+                        // Extract base64 image data
+                        const match = code.match(/src="data:image\/[^;]+;base64,([^"]+)"/);
+                        if (match) {
+                            img.src = `data:image/${fileSelector.value.split('.').pop()};base64,${match[1]}`;
+                        } else {
+                            sourceCode.className = 'language-text';
+                            sourceCode.textContent = 'Invalid image data';
+                            sourceCode.parentElement.classList.remove('hidden');
+                            showLoading(false);
                         }
                     } else if (is_font_file(fileSelector.value)) {
                         const sizeInfo = fileSelector.options[fileSelector.selectedIndex].getAttribute('data-size');
