@@ -128,6 +128,7 @@ async function viewFile(filename) {
     const binaryNotice = document.getElementById('binary-notice');
     const loadMore = document.getElementById('load-more');
     const code = fileContent.querySelector('code');
+    const lineRange = document.getElementById('line-range');
     
     try {
         const extensionUrl = document.getElementById('extension-url').value;
@@ -150,25 +151,46 @@ async function viewFile(filename) {
         }
         
         const data = await response.json();
-        const ext = filename.split('.').pop().toLowerCase();
         
         // Handle binary files
         if (data.is_binary) {
             fileContent.style.display = 'none';
             binaryNotice.style.display = 'block';
             loadMore.style.display = 'none';
+            lineRange.style.display = 'none';
+            
+            // Handle fonts
+            if (data.mime_type.includes('font')) {
+                binaryNotice.innerHTML = `
+                    <div class="font-preview">
+                        <style>
+                            @font-face {
+                                font-family: 'PreviewFont';
+                                src: url(data:${data.mime_type};base64,${data.content});
+                            }
+                        </style>
+                        <div class="font-sample" style="font-family: 'PreviewFont';">
+                            <h3>Font Preview</h3>
+                            <p>ABCDEFGHIJKLMNOPQRSTUVWXYZ</p>
+                            <p>abcdefghijklmnopqrstuvwxyz</p>
+                            <p>0123456789</p>
+                            <p>!@#$%^&*()_+-=[]{}|;:,.<>?</p>
+                        </div>
+                    </div>`;
+                return;
+            }
             
             // Handle images
-            if (/^(bmp|cur|gif|ico|jpe?g|png|psd|svg|tiff?|xcf|webp)$/.test(ext)) {
+            if (/^(bmp|cur|gif|ico|jpe?g|png|psd|svg|tiff?|xcf|webp)$/.test(filename.split('.').pop().toLowerCase())) {
                 binaryNotice.innerHTML = `<img src="data:${data.mime_type};base64,${data.content}" alt="${filename}" style="max-width: 100%; max-height: 500px;">`;
                 return;
             }
             
             // Handle audio
-            if (/^(mp3|ogg|wav|m4a)$/.test(ext)) {
+            if (/^(mp3|ogg|wav|m4a)$/.test(filename.split('.').pop().toLowerCase())) {
                 binaryNotice.innerHTML = `
                     <div class="retro-audio">
-                        <div class="retro-audio-title">${filename}</div>
+                        <div class="retro-audio-title">${filename.split('/').pop()}</div>
                         <audio controls>
                             <source src="data:${data.mime_type};base64,${data.content}" type="${data.mime_type}">
                             Your browser does not support the audio element.
@@ -178,16 +200,21 @@ async function viewFile(filename) {
             }
             
             // Other binary files
-            binaryNotice.textContent = `Binary file: ${filename}`;
+            binaryNotice.textContent = `Binary file: ${filename.split('/').pop()}`;
             return;
         }
         
         // Handle text files
         fileContent.style.display = 'block';
         binaryNotice.style.display = 'none';
+        lineRange.style.display = 'block';
+        
+        // Update line range display
+        lineRange.textContent = `Lines ${data.start_line}-${data.end_line} of ${data.total_lines}`;
         
         // Beautify the code based on file type
         let beautifiedContent = data.content;
+        const ext = filename.split('.').pop().toLowerCase();
         
         // Only beautify if the libraries are loaded
         if (window.js_beautify && window.css_beautify && window.html_beautify) {
@@ -203,7 +230,7 @@ async function viewFile(filename) {
         }
         
         // Set content and highlight
-        code.className = `language-${data.language || 'plaintext'}`;
+        code.className = `language-${data.language || 'plaintext'} line-numbers`;
         code.textContent = beautifiedContent;
         Prism.highlightElement(code);
         
@@ -211,6 +238,7 @@ async function viewFile(filename) {
         loadMore.style.display = data.has_more ? 'block' : 'none';
         loadMore.dataset.offset = data.next_offset;
         loadMore.dataset.filename = filename;
+        loadMore.dataset.current_line = data.end_line;
     } catch (error) {
         console.error('File view error:', error);
         showError(error.message || 'Failed to load file content');
@@ -312,7 +340,14 @@ function createErrorOverlay() {
 
 function updateFileList(files) {
     const fileList = document.querySelector('.file-list');
-    fileList.innerHTML = ''; // Clear existing content
+    fileList.innerHTML = '';
+    
+    // Filter out 0 byte files and simplify names
+    files = files.filter(file => file.size > 0).map(file => ({
+        ...file,
+        displayName: file.name.split('/').pop(),
+        fullPath: file.name
+    }));
     
     // Group files by type
     const groups = {
@@ -326,13 +361,8 @@ function updateFileList(files) {
         misc: { title: 'Other Files', files: [] }
     };
     
-    // Sort files by directory depth and name
-    files.sort((a, b) => {
-        const depthA = a.name.split('/').length;
-        const depthB = b.name.split('/').length;
-        if (depthA !== depthB) return depthA - depthB;
-        return a.name.localeCompare(b.name);
-    });
+    // Sort files by name within each type
+    files.sort((a, b) => a.displayName.localeCompare(b.displayName));
     
     // Group files
     files.forEach(file => {
@@ -359,20 +389,17 @@ function updateFileList(files) {
             fileItem.className = 'file-item';
             fileItem.dataset.type = type;
             fileItem.onclick = () => {
-                // Remove selected class from all items
                 document.querySelectorAll('.file-item').forEach(item => {
                     item.classList.remove('selected');
                 });
-                // Add selected class to clicked item
                 fileItem.classList.add('selected');
-                viewFile(file.name);
+                viewFile(file.fullPath);
             };
             
             const fileInfo = document.createElement('div');
             fileInfo.className = 'file-info';
             
-            // Get icon based on file type
-            const icon = getFileTypeIcon(type, file.name);
+            const icon = getFileTypeIcon(type, file.displayName);
             const fileIcon = document.createElement('span');
             fileIcon.className = 'file-icon';
             fileIcon.textContent = icon;
@@ -381,21 +408,9 @@ function updateFileList(files) {
             const filePath = document.createElement('div');
             filePath.className = 'file-path';
             
-            // Split path into directory and filename
-            const parts = file.name.split('/');
-            const fileName = parts.pop();
-            const directory = parts.join('/');
-            
-            if (directory) {
-                const dirSpan = document.createElement('span');
-                dirSpan.className = 'file-dir';
-                dirSpan.textContent = directory + '/';
-                filePath.appendChild(dirSpan);
-            }
-            
             const nameSpan = document.createElement('span');
             nameSpan.className = 'file-name';
-            nameSpan.textContent = fileName;
+            nameSpan.textContent = file.displayName;
             filePath.appendChild(nameSpan);
             
             fileInfo.appendChild(filePath);
@@ -418,7 +433,7 @@ function updateFileList(files) {
         const firstFile = fileList.querySelector('.file-item');
         if (firstFile) {
             firstFile.classList.add('selected');
-            viewFile(files[0].name);
+            viewFile(files[0].fullPath);
         }
     }
 }

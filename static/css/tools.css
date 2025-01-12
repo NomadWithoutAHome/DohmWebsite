@@ -243,6 +243,7 @@ audio::-webkit-media-controls-timeline {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    padding-right: 1rem;
 }
 
 .file-dir {
@@ -385,4 +386,104 @@ audio::-webkit-media-controls-timeline {
     text-align: center;
     margin-bottom: 0.5rem;
     text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+}
+
+/* Line range display */
+#line-range {
+    color: #00ff00;
+    font-family: 'VT323', monospace;
+    text-align: right;
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+    text-shadow: 0 0 5px rgba(0, 255, 0, 0.3);
+    border-bottom: 1px solid rgba(0, 255, 0, 0.3);
+    background: rgba(0, 0, 0, 0.3);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+#file-content pre {
+    margin: 0;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.8);
+    border: none;
+    flex: 1;
+}
+
+#file-content code {
+    font-family: 'VT323', monospace;
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+/* Font preview styles */
+.font-preview {
+    background: rgba(0, 0, 0, 0.8);
+    border: 2px solid #00ff00;
+    padding: 2rem;
+    margin: 1rem 0;
+    text-align: center;
+    box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+}
+
+.font-sample {
+    color: #00ff00;
+    text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+}
+
+.font-sample h3 {
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+}
+
+.font-sample p {
+    margin: 0.5rem 0;
+    font-size: 1.2rem;
+    line-height: 1.5;
+}
+
+/* Update file list styles to remove directory display */
+.file-path {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-right: 1rem;
+}
+
+.file-name {
+    color: #00ff00;
+    text-shadow: 0 0 3px rgba(0, 255, 0, 0.3);
+}
+
+/* Improve code display */
+pre[class*="language-"].line-numbers {
+    padding-left: 3.5em !important;
+}
+
+.line-numbers .line-numbers-rows {
+    border-right: 2px solid rgba(0, 255, 0, 0.3) !important;
+}
+
+.line-numbers-rows > span:before {
+    color: rgba(0, 255, 0, 0.5) !important;
+}
+
+/* Load more button improvements */
+#load-more {
+    background: rgba(0, 0, 0, 0.8);
+    border: 2px solid #00ff00;
+    color: #00ff00;
+    padding: 0.5rem 1rem;
+    margin: 1rem 0;
+    cursor: pointer;
+    font-family: 'VT323', monospace;
+    text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+    transition: all 0.3s ease;
+}
+
+#load-more:hover {
+    background: rgba(0, 255, 0, 0.1);
+    box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
 } 

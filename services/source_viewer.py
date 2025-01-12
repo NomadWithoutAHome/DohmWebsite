@@ -157,18 +157,49 @@ def process_binary_file(zip_info, zip_file):
     }
 
 def process_text_file(zip_info, zip_file, offset=0, chunk_size=50000):
-    """Process a text file and return its content."""
+    """Process a text file and return its content with line information."""
     content = zip_file.read(zip_info).decode('utf-8')
-    total_size = len(content)
-    has_more = total_size > offset + chunk_size
-    next_offset = offset + chunk_size if has_more else total_size
+    lines = content.splitlines()
+    total_lines = len(lines)
+    
+    # Calculate line range
+    start_line = 1
+    current_pos = 0
+    
+    # Find the starting line number based on offset
+    while current_pos < offset and current_pos < len(content):
+        if content[current_pos] == '\n':
+            start_line += 1
+        current_pos += 1
+    
+    # Find a good breaking point (end of function or block)
+    chunk_end = offset + chunk_size
+    if chunk_end < len(content):
+        # Look ahead for a good breaking point
+        look_ahead = min(1000, len(content) - chunk_end)  # Look ahead up to 1000 chars
+        for i in range(chunk_end, chunk_end + look_ahead):
+            char = content[i]
+            # Break at end of block/function or empty line
+            if char == '}' or (char == '\n' and (i + 1 >= len(content) or content[i + 1] == '\n')):
+                chunk_end = i + 1
+                break
+    
+    chunk = content[offset:chunk_end]
+    
+    # Count lines in the chunk
+    end_line = start_line + chunk.count('\n')
+    if chunk and chunk[-1] != '\n':
+        end_line += 1  # Account for last line if it doesn't end with newline
     
     return {
-        'content': content[offset:offset + chunk_size],
+        'content': chunk,
         'is_binary': False,
-        'has_more': has_more,
-        'next_offset': next_offset,
-        'language': get_language_from_filename(zip_info.filename)
+        'has_more': chunk_end < len(content),
+        'next_offset': chunk_end,
+        'language': get_language_from_filename(zip_info.filename),
+        'total_lines': total_lines,
+        'start_line': start_line,
+        'end_line': end_line
     }
 
 def get_language_from_filename(filename):
