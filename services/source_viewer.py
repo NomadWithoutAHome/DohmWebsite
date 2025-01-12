@@ -1,16 +1,21 @@
 import re
 import base64
+import mimetypes
+from zipfile import ZipFile
+from io import BytesIO
 from utils.logging_config import source_logger as logger
 
 def is_binary_file(filename):
-    """Check if a file is likely to be binary based on its extension."""
+    """Check if a file is binary based on its extension."""
     binary_extensions = {
         # Images
-        'png', 'jpg', 'jpeg', 'gif', 'bmp', 'ico', 'webp', 'svg',
+        'bmp', 'gif', 'ico', 'jpeg', 'jpg', 'png', 'psd', 'svg', 'tiff', 'webp',
         # Audio
-        'mp3', 'wav', 'ogg', 'm4a',
+        'mp3', 'ogg', 'wav', 'm4a',
         # Fonts
-        'ttf', 'woff', 'woff2', 'otf', 'eot'
+        'ttf', 'otf', 'woff', 'woff2', 'eot',
+        # Other binary
+        'pdf', 'zip', 'crx', 'exe', 'dll', 'so', 'dylib'
     }
     return filename.split('.')[-1].lower() in binary_extensions
 
@@ -141,72 +146,58 @@ def sort_files(files):
     
     return sorted(files, key=get_sort_key)
 
-def process_binary_file(content, filename, mime_type):
-    """Process binary file content (images, audio, fonts)."""
-    logger.debug("Processing binary file: %s (%s)", filename, mime_type)
-    
-    content_type = mime_type
-    data_url = f'data:{content_type};base64,{base64.b64encode(content).decode()}'
-    
-    response = {
-        'content': data_url,
-        'is_binary': True,
+def process_binary_file(zip_info, zip_file):
+    """Process a binary file and return its content as base64."""
+    content = zip_file.read(zip_info)
+    mime_type = mimetypes.guess_type(zip_info.filename)[0] or 'application/octet-stream'
+    return {
+        'content': base64.b64encode(content).decode('utf-8'),
         'mime_type': mime_type,
-        'type': get_generic_type(filename)
+        'is_binary': True
     }
-    
-    if mime_type.startswith('audio/'):
-        response.update({
-            'is_audio': True,
-            'filename': filename,
-            'custom_style': """
-                audio::-webkit-media-controls-panel {
-                    background-color: #1a1a1a;
-                    border: 2px solid #f97316;
-                }
-                audio::-webkit-media-controls-current-time-display,
-                audio::-webkit-media-controls-time-remaining-display {
-                    color: #f97316;
-                }
-                audio::-webkit-media-controls-play-button,
-                audio::-webkit-media-controls-mute-button {
-                    filter: invert(60%) sepia(94%) saturate(3000%) hue-rotate(360deg);
-                }
-                audio::-webkit-media-controls-volume-slider,
-                audio::-webkit-media-controls-timeline {
-                    filter: hue-rotate(300deg) saturate(200%);
-                }
-            """
-        })
-    elif mime_type.startswith('image/'):
-        response['is_image'] = True
-    
-    return response
 
-def process_text_file(content, filename, chunk_start=0, chunk_size=500):
-    """Process text file content with chunking support."""
-    logger.debug("Processing text file: %s (chunk start: %d, size: %d)", 
-                filename, chunk_start, chunk_size)
+def process_text_file(zip_info, zip_file, offset=0, chunk_size=50000):
+    """Process a text file and return its content."""
+    content = zip_file.read(zip_info).decode('utf-8')
+    total_size = len(content)
+    has_more = total_size > offset + chunk_size
+    next_offset = offset + chunk_size if has_more else total_size
     
-    try:
-        text_content = content.decode('utf-8')
-        lines = text_content.splitlines()
-        total_lines = len(lines)
-        end_line = min(chunk_start + chunk_size, total_lines)
-        chunk_content = '\n'.join(lines[chunk_start:end_line])
-        
-        return {
-            'content': chunk_content,
-            'is_binary': False,
-            'total_lines': total_lines,
-            'mime_type': get_mime_type(filename),
-            'type': get_generic_type(filename),
-            'current_chunk': {
-                'start': chunk_start,
-                'end': end_line,
-                'size': chunk_size
-            }
-        }
-    except UnicodeDecodeError as e:
-        logger.error("Failed to decode file content: %s", str(e))
-        return None 
+    return {
+        'content': content[offset:offset + chunk_size],
+        'is_binary': False,
+        'has_more': has_more,
+        'next_offset': next_offset,
+        'language': get_language_from_filename(zip_info.filename)
+    }
+
+def get_language_from_filename(filename):
+    """Get the language for syntax highlighting based on file extension."""
+    ext = filename.split('.')[-1].lower()
+    language_map = {
+        'js': 'javascript',
+        'jsx': 'javascript',
+        'ts': 'typescript',
+        'tsx': 'typescript',
+        'json': 'json',
+        'css': 'css',
+        'scss': 'scss',
+        'less': 'less',
+        'html': 'markup',
+        'htm': 'markup',
+        'xml': 'markup',
+        'svg': 'markup',
+        'py': 'python',
+        'rb': 'ruby',
+        'php': 'php',
+        'java': 'java',
+        'c': 'c',
+        'cpp': 'cpp',
+        'cs': 'csharp',
+        'go': 'go',
+        'rs': 'rust',
+        'swift': 'swift',
+        'md': 'markdown',
+        'txt': 'plaintext'
+    }
+    return language_map.get(ext, 'plaintext') 

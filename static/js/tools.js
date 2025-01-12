@@ -124,7 +124,6 @@ function closeModal() {
 
 // Handle file viewing
 async function viewFile(filename) {
-    const errorMessage = document.getElementById('error-message');
     const fileContent = document.getElementById('file-content');
     const binaryNotice = document.getElementById('binary-notice');
     const loadMore = document.getElementById('load-more');
@@ -151,12 +150,35 @@ async function viewFile(filename) {
         }
         
         const data = await response.json();
+        const ext = filename.split('.').pop().toLowerCase();
         
         // Handle binary files
         if (data.is_binary) {
             fileContent.style.display = 'none';
             binaryNotice.style.display = 'block';
             loadMore.style.display = 'none';
+            
+            // Handle images
+            if (/^(bmp|cur|gif|ico|jpe?g|png|psd|svg|tiff?|xcf|webp)$/.test(ext)) {
+                binaryNotice.innerHTML = `<img src="data:${data.mime_type};base64,${data.content}" alt="${filename}" style="max-width: 100%; max-height: 500px;">`;
+                return;
+            }
+            
+            // Handle audio
+            if (/^(mp3|ogg|wav|m4a)$/.test(ext)) {
+                binaryNotice.innerHTML = `
+                    <div class="retro-audio">
+                        <div class="retro-audio-title">${filename}</div>
+                        <audio controls>
+                            <source src="data:${data.mime_type};base64,${data.content}" type="${data.mime_type}">
+                            Your browser does not support the audio element.
+                        </audio>
+                    </div>`;
+                return;
+            }
+            
+            // Other binary files
+            binaryNotice.textContent = `Binary file: ${filename}`;
             return;
         }
         
@@ -164,9 +186,25 @@ async function viewFile(filename) {
         fileContent.style.display = 'block';
         binaryNotice.style.display = 'none';
         
+        // Beautify the code based on file type
+        let beautifiedContent = data.content;
+        
+        // Only beautify if the libraries are loaded
+        if (window.js_beautify && window.css_beautify && window.html_beautify) {
+            const opts = { indent_size: 2, preserve_newlines: true };
+            
+            if (['js', 'json', 'jsx', 'ts', 'tsx'].includes(ext)) {
+                beautifiedContent = js_beautify(data.content, opts);
+            } else if (['css', 'scss', 'less'].includes(ext)) {
+                beautifiedContent = css_beautify(data.content, opts);
+            } else if (['html', 'htm', 'xml', 'svg'].includes(ext)) {
+                beautifiedContent = html_beautify(data.content, opts);
+            }
+        }
+        
         // Set content and highlight
         code.className = `language-${data.language || 'plaintext'}`;
-        code.textContent = data.content;
+        code.textContent = beautifiedContent;
         Prism.highlightElement(code);
         
         // Show/hide load more button
@@ -175,8 +213,7 @@ async function viewFile(filename) {
         loadMore.dataset.filename = filename;
     } catch (error) {
         console.error('File view error:', error);
-        errorMessage.textContent = error.message;
-        errorMessage.style.display = 'block';
+        showError(error.message || 'Failed to load file content');
     }
 }
 
