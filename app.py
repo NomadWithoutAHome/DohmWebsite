@@ -262,24 +262,6 @@ def view_extension():
                             chunk_content = json.dumps(parsed, indent=2)
                         except json.JSONDecodeError:
                             pass
-                    elif filename.endswith('.css'):
-                        # Basic CSS prettification
-                        # Remove extra whitespace and empty lines
-                        chunk_content = re.sub(r'\s+', ' ', chunk_content).strip()
-                        # Add newline after closing braces
-                        chunk_content = re.sub(r'}', '}\n', chunk_content)
-                        # Add newline after semicolons (except within parentheses)
-                        chunk_content = re.sub(r';(?![^(]*\))', ';\n', chunk_content)
-                        # Add space after commas (except within parentheses)
-                        chunk_content = re.sub(r',(?![^(]*\))', ', ', chunk_content)
-                        # Add space after colons
-                        chunk_content = re.sub(r':\s*', ': ', chunk_content)
-                        # Add space before opening braces
-                        chunk_content = re.sub(r'\s*{\s*', ' {\n    ', chunk_content)
-                        # Indent properties
-                        chunk_content = re.sub(r'\n([^}])', r'\n    \1', chunk_content)
-                        # Clean up multiple newlines
-                        chunk_content = re.sub(r'\n\s*\n', '\n', chunk_content)
 
                     return jsonify({
                         'content': chunk_content,
