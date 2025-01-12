@@ -200,14 +200,19 @@ function showError(message) {
     
     // Format error message in a console-like way
     const timestamp = new Date().toISOString();
-    const formattedError = `[${timestamp}]
+    const formattedError = `ERROR:\\> [${timestamp}]
 Status: ERROR
 ------------------
 ${message}
 ------------------
 Press ENTER to continue...`;
     
-    errorConsole.innerHTML = formattedError + '<span class="error-console-prompt">_</span>';
+    // Remove the ERROR:\\> prefix since it's added by CSS
+    errorConsole.textContent = formattedError;
+    const prompt = document.createElement('span');
+    prompt.className = 'error-console-prompt';
+    prompt.textContent = '_';
+    errorConsole.appendChild(prompt);
     
     // Show the console and overlay
     errorOverlay.style.display = 'block';

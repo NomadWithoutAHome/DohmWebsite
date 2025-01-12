@@ -96,11 +96,11 @@
 }
 
 .error-console-prompt {
-    display: block;
-    margin-top: 1rem;
+    display: inline-block;
     color: #00ff00;
     text-shadow: 0 0 5px #00ff00;
     animation: promptBlink 1s step-end infinite;
+    margin-left: 0.5ch;
 }
 
 @keyframes promptBlink {
