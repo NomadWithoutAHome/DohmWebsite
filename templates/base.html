@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Dohmboy64{% endblock %}</title>
+    
+    <!-- Common CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/main.css') }}" rel="stylesheet">
+    
+    <!-- Page-specific CSS -->
+    {% block styles %}{% endblock %}
+    
+    <!-- Common JavaScript -->
+    {% block head_scripts %}{% endblock %}
+</head>
+<body class="text-white">
+    <div class="scanline fixed inset-0 pointer-events-none"></div>
+    <div class="retro-container min-h-screen">
+        <div class="container mx-auto px-4 py-16">
+            <div class="flex flex-col items-center justify-center space-y-12">
+                <a href="/" class="logo-glow w-48 md:w-64 transition-transform hover:scale-105 duration-300">
+                    <img src="{{ url_for('static', filename='assets/logo.png') }}" alt="Dohmbdy64 Logo" class="w-full h-auto">
+                </a>
+                
+                {% block content %}{% endblock %}
+
+                <div class="mt-16 text-sm text-gray-500">
+                    <p>© 2024 DOHMBDY64 - INSERT COIN TO CONTINUE</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Page-specific JavaScript -->
+    {% block scripts %}{% endblock %}
+</body>
+</html> 
