@@ -2,8 +2,13 @@
 document.getElementById('extension-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     
+    const extensionUrl = document.getElementById('extension-url').value.trim();
+    if (!extensionUrl) {
+        showError('Please enter a Chrome Web Store URL or Extension ID');
+        return;
+    }
+    
     try {
-        const extensionUrl = document.getElementById('extension-url').value;
         const format = document.querySelector('input[name="format"]:checked').value;
         
         // Extract extension ID from URL or use as is
@@ -13,8 +18,18 @@ document.getElementById('extension-form').addEventListener('submit', async (e) =
             return;
         }
         
-        // Create temporary link to trigger download
-        const response = await fetch(`/download-extension?id=${extensionId}&format=${format}`);
+        // Send POST request with JSON data
+        const response = await fetch('/download-extension', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                extension_id: extensionId,
+                format: format
+            })
+        });
+        
         if (!response.ok) {
             const error = await response.text();
             showError(error || 'Failed to download extension');
@@ -34,6 +49,12 @@ document.getElementById('extension-form').addEventListener('submit', async (e) =
         console.error('Download error:', error);
         showError(error.message || 'Failed to download extension');
     }
+});
+
+// Also update the input field to remove the required attribute
+document.addEventListener('DOMContentLoaded', () => {
+    const input = document.getElementById('extension-url');
+    input.removeAttribute('required');
 });
 
 // Handle view source button click
@@ -74,9 +95,18 @@ function extractExtensionId(input) {
     input = input.trim();
     if (!input) return null;
     
-    // If it's a URL, extract the ID
-    const match = input.match(/(?:\/detail\/|^)([a-z]{32})/i);
-    return match ? match[1] : input;
+    // If it's a URL, try to extract the ID
+    const urlMatch = input.match(/chrome(?:webstore)?\.google\.com\/(?:webstore\/)?detail\/[^\/]+\/([a-z0-9]{32})/i);
+    if (urlMatch) {
+        return urlMatch[1];
+    }
+    
+    // If it's not a URL, check if it's a valid 32-character ID
+    if (/^[a-z0-9]{32}$/i.test(input)) {
+        return input.toLowerCase();
+    }
+    
+    return null;
 }
 
 // Modal handling

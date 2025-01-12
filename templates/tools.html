@@ -3,7 +3,7 @@
 {% block title %}CRX Tools - DOHMBDY64{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{{ url_for('static', filename='vendor/prism/prism.css') }}">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
 <link rel="stylesheet" href="{{ url_for('static', filename='css/tools.css') }}">
 {% endblock %}
 
@@ -17,7 +17,7 @@
             <form id="extension-form" class="flex flex-col items-center max-w-2xl mx-auto">
                 <div class="text-center w-full">
                     <label for="extension-url" class="block text-2xl mb-4 font-vt323 text-white">Chrome Web Store URL or Extension ID:</label>
-                    <input type="text" id="extension-url" class="retro-input" required>
+                    <input type="text" id="extension-url" name="extension-url" class="retro-input w-full" placeholder="Enter Chrome Web Store URL or Extension ID">
                 </div>
 
                 <div class="flex justify-center gap-8 mb-6">
@@ -84,6 +84,10 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='vendor/prism/prism.js') }}"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-css.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup.min.js"></script>
 <script src="{{ url_for('static', filename='js/tools.js') }}"></script>
 {% endblock %} 
