@@ -109,31 +109,6 @@ def is_font_file(filename):
     font_extensions = {'ttf', 'woff', 'woff2', 'otf', 'eot'}
     return filename.split('.')[-1].lower() in font_extensions
 
-def get_localized_message(z, message_name):
-    """Get localized message from _locales directory."""
-    try:
-        # Try English first
-        locales = ['en', 'en_US', 'en_GB']
-        for locale in locales:
-            try:
-                with z.open(f'_locales/{locale}/messages.json') as f:
-                    messages = json.loads(f.read().decode('utf-8'))
-                    if message_name in messages:
-                        return messages[message_name]['message']
-            except:
-                continue
-                
-        # If English not found, try any available locale
-        for filename in z.namelist():
-            if filename.startswith('_locales/') and filename.endswith('/messages.json'):
-                with z.open(filename) as f:
-                    messages = json.loads(f.read().decode('utf-8'))
-                    if message_name in messages:
-                        return messages[message_name]['message']
-        return None
-    except:
-        return None
-
 def get_extension_name(zip_content):
     """Extract extension name from manifest.json"""
     try:
@@ -142,14 +117,6 @@ def get_extension_name(zip_content):
                 with z.open('manifest.json') as f:
                     manifest = json.loads(f.read().decode('utf-8'))
                     name = manifest.get('name', '').strip()
-                    
-                    # Check if name is a message placeholder
-                    if name.startswith('__MSG_') and name.endswith('__'):
-                        message_name = name[6:-2]  # Remove __MSG_ and __
-                        localized_name = get_localized_message(z, message_name)
-                        if localized_name:
-                            name = localized_name
-                    
                     # Remove special characters and spaces, keep alphanumeric and dashes
                     sanitized_name = re.sub(r'[^\w\-]', '-', name)
                     # Remove multiple consecutive dashes
