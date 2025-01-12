@@ -1,8 +1,6 @@
 // Handle form submission for downloading
 document.getElementById('extension-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const errorMessage = document.getElementById('error-message');
-    errorMessage.style.display = 'none';
     
     try {
         const extensionUrl = document.getElementById('extension-url').value;
@@ -11,14 +9,16 @@ document.getElementById('extension-form').addEventListener('submit', async (e) =
         // Extract extension ID from URL or use as is
         const extensionId = extractExtensionId(extensionUrl);
         if (!extensionId) {
-            throw new Error('Invalid extension URL or ID');
+            showError('Invalid extension URL or ID');
+            return;
         }
         
         // Create temporary link to trigger download
         const response = await fetch(`/download-extension?id=${extensionId}&format=${format}`);
         if (!response.ok) {
             const error = await response.text();
-            throw new Error(error || 'Failed to download extension');
+            showError(error || 'Failed to download extension');
+            return;
         }
         
         const blob = await response.blob();
@@ -32,21 +32,18 @@ document.getElementById('extension-form').addEventListener('submit', async (e) =
         a.remove();
     } catch (error) {
         console.error('Download error:', error);
-        errorMessage.textContent = error.message;
-        errorMessage.style.display = 'block';
+        showError(error.message || 'Failed to download extension');
     }
 });
 
 // Handle view source button click
 document.getElementById('view-button').addEventListener('click', async () => {
-    const errorMessage = document.getElementById('error-message');
-    errorMessage.style.display = 'none';
-    
     try {
         const extensionUrl = document.getElementById('extension-url').value;
         const extensionId = extractExtensionId(extensionUrl);
         if (!extensionId) {
-            throw new Error('Invalid extension URL or ID');
+            showError('Invalid extension URL or ID');
+            return;
         }
         
         const response = await fetch('/view-extension', {
@@ -59,7 +56,8 @@ document.getElementById('view-button').addEventListener('click', async () => {
         
         if (!response.ok) {
             const error = await response.text();
-            throw new Error(error || 'Failed to load extension source');
+            showError(error || 'Failed to load extension source');
+            return;
         }
         
         const data = await response.json();
@@ -67,8 +65,7 @@ document.getElementById('view-button').addEventListener('click', async () => {
         showModal();
     } catch (error) {
         console.error('View error:', error);
-        errorMessage.textContent = error.message;
-        errorMessage.style.display = 'block';
+        showError(error.message || 'Failed to load extension source');
     }
 });
 
@@ -198,7 +195,9 @@ async function loadMoreContent() {
 }
 
 function showError(message) {
-    const errorElement = document.querySelector('.error-message');
+    const errorConsole = document.querySelector('.error-console') || createErrorConsole();
+    const errorOverlay = document.querySelector('.error-console-overlay') || createErrorOverlay();
+    
     // Format error message in a console-like way
     const timestamp = new Date().toISOString();
     const formattedError = `[${timestamp}]
@@ -206,15 +205,162 @@ Status: ERROR
 ------------------
 ${message}
 ------------------
-Press any key to continue...`;
+Press ENTER to continue...`;
     
-    errorElement.textContent = formattedError;
-    errorElement.style.display = 'block';
+    errorConsole.innerHTML = formattedError + '<span class="error-console-prompt">_</span>';
     
-    // Hide error on any keypress
+    // Show the console and overlay
+    errorOverlay.style.display = 'block';
+    errorConsole.style.display = 'block';
+    
+    // Handle Enter key press
     const hideError = (e) => {
-        errorElement.style.display = 'none';
-        document.removeEventListener('keydown', hideError);
+        if (e.key === 'Enter') {
+            errorOverlay.style.display = 'none';
+            errorConsole.style.display = 'none';
+            document.removeEventListener('keydown', hideError);
+        }
     };
     document.addEventListener('keydown', hideError);
+}
+
+function createErrorConsole() {
+    const console = document.createElement('div');
+    console.className = 'error-console';
+    document.body.appendChild(console);
+    return console;
+}
+
+function createErrorOverlay() {
+    const overlay = document.createElement('div');
+    overlay.className = 'error-console-overlay';
+    document.body.appendChild(overlay);
+    return overlay;
+}
+
+function updateFileList(files) {
+    const fileList = document.querySelector('.file-list');
+    fileList.innerHTML = ''; // Clear existing content
+    
+    // Group files by type
+    const groups = {
+        manifest: { title: 'Manifest', files: [] },
+        code: { title: 'Code Files', files: [] },
+        markup: { title: 'Markup Files', files: [] },
+        locales: { title: 'Locales', files: [] },
+        images: { title: 'Images', files: [] },
+        audio: { title: 'Audio', files: [] },
+        font: { title: 'Fonts', files: [] },
+        misc: { title: 'Other Files', files: [] }
+    };
+    
+    // Sort files by directory depth and name
+    files.sort((a, b) => {
+        const depthA = a.name.split('/').length;
+        const depthB = b.name.split('/').length;
+        if (depthA !== depthB) return depthA - depthB;
+        return a.name.localeCompare(b.name);
+    });
+    
+    // Group files
+    files.forEach(file => {
+        groups[file.type].files.push(file);
+    });
+    
+    // Create group elements
+    Object.entries(groups).forEach(([type, group]) => {
+        if (group.files.length === 0) return;
+        
+        const groupDiv = document.createElement('div');
+        groupDiv.className = 'file-group';
+        
+        const header = document.createElement('div');
+        header.className = 'group-header';
+        header.textContent = `${group.title} (${group.files.length})`;
+        groupDiv.appendChild(header);
+        
+        const filesDiv = document.createElement('div');
+        filesDiv.className = 'group-files';
+        
+        group.files.forEach(file => {
+            const fileItem = document.createElement('div');
+            fileItem.className = 'file-item';
+            fileItem.dataset.type = type;
+            fileItem.onclick = () => {
+                // Remove selected class from all items
+                document.querySelectorAll('.file-item').forEach(item => {
+                    item.classList.remove('selected');
+                });
+                // Add selected class to clicked item
+                fileItem.classList.add('selected');
+                viewFile(file.name);
+            };
+            
+            const fileInfo = document.createElement('div');
+            fileInfo.className = 'file-info';
+            
+            // Get icon based on file type
+            const icon = getFileTypeIcon(type, file.name);
+            const fileIcon = document.createElement('span');
+            fileIcon.className = 'file-icon';
+            fileIcon.textContent = icon;
+            fileInfo.appendChild(fileIcon);
+            
+            const filePath = document.createElement('div');
+            filePath.className = 'file-path';
+            
+            // Split path into directory and filename
+            const parts = file.name.split('/');
+            const fileName = parts.pop();
+            const directory = parts.join('/');
+            
+            if (directory) {
+                const dirSpan = document.createElement('span');
+                dirSpan.className = 'file-dir';
+                dirSpan.textContent = directory + '/';
+                filePath.appendChild(dirSpan);
+            }
+            
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'file-name';
+            nameSpan.textContent = fileName;
+            filePath.appendChild(nameSpan);
+            
+            fileInfo.appendChild(filePath);
+            
+            const fileSize = document.createElement('div');
+            fileSize.className = 'file-size';
+            fileSize.textContent = file.size_formatted;
+            fileInfo.appendChild(fileSize);
+            
+            fileItem.appendChild(fileInfo);
+            filesDiv.appendChild(fileItem);
+        });
+        
+        groupDiv.appendChild(filesDiv);
+        fileList.appendChild(groupDiv);
+    });
+    
+    // Select and view the first file
+    if (files.length > 0) {
+        const firstFile = fileList.querySelector('.file-item');
+        if (firstFile) {
+            firstFile.classList.add('selected');
+            viewFile(files[0].name);
+        }
+    }
+}
+
+function getFileTypeIcon(type, filename) {
+    const icons = {
+        manifest: '📄',
+        code: '📝',
+        markup: '🌐',
+        locales: '🌍',
+        images: '🖼️',
+        audio: '🔊',
+        font: '🔤',
+        misc: '📎'
+    };
+    return icons[type] || '📄';
 } 

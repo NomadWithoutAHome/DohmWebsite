@@ -13,116 +13,77 @@
     
     <div class="grid grid-cols-1 gap-8">
         <!-- Combined Download & View Section -->
-        <div class="bg-gray-800 p-6 rounded-lg">
-            <form id="extension-form" class="flex flex-col items-center space-y-4 max-w-2xl mx-auto">
-                <div class="w-full text-center">
-                    <label for="extension-url" class="block mb-2 text-xl">Chrome Web Store URL or Extension ID:</label>
-                    <input type="text" id="extension-url" class="retro-input w-full" placeholder="e.g. https://chrome.google.com/webstore/detail/...">
+        <div class="bg-gray-800 p-6 rounded-lg border-2 border-orange-500 shadow-lg">
+            <form id="extension-form" class="flex flex-col items-center max-w-2xl mx-auto">
+                <div class="text-center w-full">
+                    <label for="extension-url" class="block text-2xl mb-4 font-vt323 text-white">Chrome Web Store URL or Extension ID:</label>
+                    <input type="text" id="extension-url" class="retro-input" required>
                 </div>
-                <div class="flex justify-center items-center gap-4">
-                    <div class="flex items-center gap-2">
-                        <input type="radio" id="format-crx" name="format" value="crx" class="retro-radio" checked>
-                        <label for="format-crx">CRX Format</label>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <input type="radio" id="format-zip" name="format" value="zip" class="retro-radio">
-                        <label for="format-zip">ZIP Format</label>
-                    </div>
+                
+                <div class="flex justify-center gap-8 mb-6">
+                    <label class="flex items-center">
+                        <input type="radio" name="format" value="crx" class="retro-radio" checked>
+                        <span class="text-xl">CRX Format</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="radio" name="format" value="zip" class="retro-radio">
+                        <span class="text-xl">ZIP Format</span>
+                    </label>
                 </div>
+                
                 <div class="flex justify-center gap-4">
                     <button type="submit" class="retro-button">Download Extension</button>
                     <button type="button" id="view-button" class="retro-button">View Source</button>
                 </div>
-                <div id="error-message" class="error-message"></div>
             </form>
         </div>
 
         <!-- Help Section -->
-        <div class="bg-gray-800 p-6 rounded-lg">
-            <h2 class="text-2xl mb-4">Help</h2>
-            <p class="mb-4">To find an extension's ID:</p>
+        <div class="bg-gray-800 p-6 rounded-lg border-2 border-orange-500 shadow-lg">
+            <h2 class="text-2xl mb-4 font-vt323">Help</h2>
+            <p class="mb-2">To find an extension's ID:</p>
             <ol class="list-decimal list-inside space-y-2">
-                <li>Go to the extension's page on the Chrome Web Store</li>
-                <li>The ID is the long string of letters in the URL after "detail/"</li>
-                <li>Example: In "chrome.google.com/webstore/detail/<strong>abcdefghijklmnop</strong>", the ID is "abcdefghijklmnop"</li>
+                <li>Go to the Chrome Web Store</li>
+                <li>Find the extension you want to download</li>
+                <li>The ID is the long string of letters in the URL</li>
+                <li>Example: https://chrome.google.com/webstore/detail/extension-name/<strong>abcdefghijklmnopqrstuvwxyz123456</strong></li>
             </ol>
         </div>
     </div>
 </div>
 
 <!-- Source Viewer Modal -->
-<div id="source-modal" class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-50">
-    <div class="bg-gray-900 w-11/12 h-5/6 rounded-lg flex flex-col">
+<div id="source-modal" class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center">
+    <div class="bg-gray-900 w-full max-w-6xl h-5/6 rounded-lg flex flex-col border-2 border-orange-500 shadow-lg">
         <div class="modal-header flex justify-between items-center">
-            <h3 class="text-xl">Extension Source</h3>
-            <button class="modal-close" onclick="closeModal()">&times;</button>
+            <h2 class="text-2xl font-vt323">Source Code Viewer</h2>
+            <button onclick="closeModal()" class="modal-close">&times;</button>
         </div>
-        <div class="flex flex-1 overflow-hidden">
+        <div class="flex-1 flex overflow-hidden p-4">
             <!-- File List -->
-            <div class="w-1/3 border-r border-gray-700">
-                <div id="file-list" class="file-list">
-                    <!-- Manifest Group -->
-                    <div class="file-group" data-type="manifest">
-                        <div class="group-header">Manifest</div>
-                        <div class="group-files"></div>
-                    </div>
-                    <!-- Code Group -->
-                    <div class="file-group" data-type="code">
-                        <div class="group-header">Code Files</div>
-                        <div class="group-files"></div>
-                    </div>
-                    <!-- Markup Group -->
-                    <div class="file-group" data-type="markup">
-                        <div class="group-header">Markup Files</div>
-                        <div class="group-files"></div>
-                    </div>
-                    <!-- Locales Group -->
-                    <div class="file-group" data-type="locales">
-                        <div class="group-header">Locales</div>
-                        <div class="group-files"></div>
-                    </div>
-                    <!-- Images Group -->
-                    <div class="file-group" data-type="images">
-                        <div class="group-header">Images</div>
-                        <div class="group-files"></div>
-                    </div>
-                    <!-- Audio Group -->
-                    <div class="file-group" data-type="audio">
-                        <div class="group-header">Audio</div>
-                        <div class="group-files"></div>
-                    </div>
-                    <!-- Fonts Group -->
-                    <div class="file-group" data-type="font">
-                        <div class="group-header">Fonts</div>
-                        <div class="group-files"></div>
-                    </div>
-                    <!-- Misc Group -->
-                    <div class="file-group" data-type="misc">
-                        <div class="group-header">Other Files</div>
-                        <div class="group-files"></div>
-                    </div>
-                </div>
+            <div class="w-1/3 overflow-y-auto mr-4">
+                <div class="file-list"></div>
             </div>
             <!-- File Content -->
             <div class="flex-1 overflow-hidden flex flex-col">
-                <div id="file-content" class="flex-1 overflow-auto p-4">
-                    <pre><code class="language-auto"></code></pre>
-                </div>
-                <div id="binary-notice" class="hidden p-4 text-center bg-gray-800">
+                <pre id="file-content" class="flex-1 overflow-auto"><code class="language-plaintext"></code></pre>
+                <div id="binary-notice" class="hidden">
                     This is a binary file and cannot be displayed.
                 </div>
-                <div id="load-more" class="hidden p-4 text-center">
-                    <button class="retro-button" onclick="loadMoreContent()">Load More</button>
-                </div>
+                <button id="load-more" onclick="loadMoreContent()" class="mt-4 retro-button hidden">
+                    Load More
+                </button>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Error Console Elements -->
+<div class="error-console-overlay"></div>
+<div class="error-console"></div>
 {% endblock %}
 
 {% block scripts %}
 <script src="{{ url_for('static', filename='vendor/prism/prism.js') }}"></script>
-<script src="{{ url_for('static', filename='js/utils/fileUtils.js') }}"></script>
-<script src="{{ url_for('static', filename='js/ui/fileList.js') }}"></script>
 <script src="{{ url_for('static', filename='js/tools.js') }}"></script>
 {% endblock %} 
