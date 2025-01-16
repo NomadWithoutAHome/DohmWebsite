@@ -25,18 +25,51 @@ body {
 .retro-button {
     background: #f4511e;
     color: white;
-    padding: 1rem 2rem;
+    padding: 0.75rem 1rem;
     border: 4px solid #fb8c00;
-    box-shadow: 4px 4px 0px #000;
+    box-shadow: 4px 4px 0px #000, 0 0 10px #f97316;
     transition: all 0.2s;
     font-family: 'VT323', monospace;
     font-size: 1.5rem;
     text-transform: uppercase;
+    min-width: 180px;
+    text-align: center;
+    display: inline-block;
+    text-decoration: none;
+    position: relative;
 }
 
 .retro-button:hover {
     transform: translate(-2px, -2px);
-    box-shadow: 6px 6px 0px #000;
+    box-shadow: 6px 6px 0px #000, 0 0 15px #f97316;
+    text-decoration: none;
+    color: white;
+}
+
+/* Add glow effect around the button */
+.retro-button::after {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    border: 2px solid #f97316;
+    box-shadow: 0 0 10px #f97316;
+    opacity: 0.5;
+    pointer-events: none;
+    animation: buttonGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes buttonGlow {
+    from {
+        opacity: 0.3;
+        box-shadow: 0 0 5px #f97316;
+    }
+    to {
+        opacity: 0.6;
+        box-shadow: 0 0 15px #f97316;
+    }
 }
 
 .scanline {
