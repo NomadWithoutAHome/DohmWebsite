@@ -1,6 +1,7 @@
 body {
     background: #1a1a1a;
-    font-family: 'Press Start 2P', cursive;
+    font-family: 'VT323', monospace;
+    font-size: 1.2rem;
 }
 
 .retro-container {
@@ -28,6 +29,9 @@ body {
     border: 4px solid #fb8c00;
     box-shadow: 4px 4px 0px #000;
     transition: all 0.2s;
+    font-family: 'VT323', monospace;
+    font-size: 1.5rem;
+    text-transform: uppercase;
 }
 
 .retro-button:hover {
@@ -75,10 +79,11 @@ body {
 
 .loading-text {
     color: #00ff00;
-    font-size: 1.5rem;
+    font-size: 2rem;
     margin-bottom: 1rem;
     text-shadow: 0 0 5px #00ff00;
     animation: textPulse 1s infinite;
+    font-family: 'VT323', monospace;
 }
 
 .loading-bar {
@@ -185,4 +190,72 @@ body {
     100% {
         background-position: 0 4px;
     }
+}
+
+/* Typewriter Effect */
+.typewriter {
+    font-family: 'VT323', monospace;
+    color: #fbbf24;
+    text-shadow: 0 0 10px #f97316;
+    position: relative;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.typewriter::before {
+    content: '> ';
+    color: #fbbf24;
+    text-shadow: 0 0 10px #f97316;
+}
+
+.typewriter-cursor {
+    display: inline-block;
+    width: 0.6em;
+    height: 1em;
+    background-color: #fbbf24;
+    vertical-align: middle;
+    margin-left: 2px;
+    box-shadow: 0 0 10px #f97316;
+    transition: opacity 0.1s ease;
+}
+
+/* Console window effect */
+.console-window {
+    background: rgba(0, 0, 0, 0.9);
+    border: 2px solid #f97316;
+    border-radius: 4px;
+    padding: 1.5rem;
+    position: relative;
+    box-shadow: 0 0 20px rgba(249, 115, 22, 0.3);
+    font-family: 'VT323', monospace;
+    font-size: 1.2rem;
+}
+
+.console-window::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.2),
+        rgba(0, 0, 0, 0.2) 1px,
+        transparent 1px,
+        transparent 2px
+    );
+    pointer-events: none;
+    opacity: 0.5;
+}
+
+/* Make the title text yellow like in the image */
+.typewriter-title {
+    color: #fbbf24 !important;
+    text-shadow: 0 0 10px #f97316 !important;
+}
+
+.error-console {
+    font-family: 'VT323', monospace;
+    font-size: 1.5rem;
 } 
