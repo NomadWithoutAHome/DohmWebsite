@@ -23,11 +23,13 @@ body {
 }
 
 .retro-button {
-    background: #f4511e;
-    color: white;
+    background: #1a1a1a;
+    color: #fbbf24;
     padding: 0.75rem 1rem;
-    border: 4px solid #fb8c00;
-    box-shadow: 4px 4px 0px #000, 0 0 10px #f97316;
+    border: 4px solid #f97316;
+    box-shadow: 
+        inset 0 0 15px #f97316,
+        4px 4px 0 #000;
     transition: all 0.2s;
     font-family: 'VT323', monospace;
     font-size: 1.5rem;
@@ -37,13 +39,18 @@ body {
     display: inline-block;
     text-decoration: none;
     position: relative;
+    text-shadow: 0 0 10px #f97316;
+    letter-spacing: 2px;
 }
 
 .retro-button:hover {
     transform: translate(-2px, -2px);
-    box-shadow: 6px 6px 0px #000, 0 0 15px #f97316;
+    box-shadow: 
+        inset 0 0 20px #f97316,
+        6px 6px 0 #000;
     text-decoration: none;
-    color: white;
+    color: #fbbf24;
+    border-color: #fb8c00;
 }
 
 /* Add glow effect around the button */
@@ -61,6 +68,34 @@ body {
     animation: buttonGlow 2s ease-in-out infinite alternate;
 }
 
+/* Add scanline effect to buttons */
+.retro-button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: repeating-linear-gradient(
+        0deg,
+        transparent 0%,
+        rgba(249, 115, 22, 0.05) 1px,
+        transparent 2px,
+        transparent 4px
+    );
+    pointer-events: none;
+    animation: buttonScanline 8s linear infinite;
+}
+
+@keyframes buttonScanline {
+    from {
+        background-position: 0 0;
+    }
+    to {
+        background-position: 0 100%;
+    }
+}
+
 @keyframes buttonGlow {
     from {
         opacity: 0.3;
@@ -70,6 +105,14 @@ body {
         opacity: 0.6;
         box-shadow: 0 0 15px #f97316;
     }
+}
+
+/* Add press effect */
+.retro-button:active {
+    transform: translate(2px, 2px);
+    box-shadow: 
+        inset 0 0 25px #f97316,
+        2px 2px 0 #000;
 }
 
 .scanline {
