@@ -291,4 +291,21 @@ body {
 .error-console {
     font-family: 'VT323', monospace;
     font-size: 1.5rem;
+}
+
+.copyright-text {
+    color: #fbbf24;
+    text-shadow: 0 0 10px #f97316;
+    font-family: 'VT323', monospace;
+    font-size: 1.2rem;
+    animation: copyrightGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes copyrightGlow {
+    from {
+        text-shadow: 0 0 5px #f97316;
+    }
+    to {
+        text-shadow: 0 0 15px #f97316;
+    }
 } 
