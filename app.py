@@ -2,10 +2,6 @@ from flask import Flask, request, jsonify, send_file
 from io import BytesIO
 from zipfile import ZipFile
 from services.crx_service import extract_extension_id, safe_download_crx, crx_to_zip, get_extension_name
-from services.source_viewer import (
-    get_file_metadata, sort_files, process_binary_file,
-    process_text_file, is_binary_file, get_mime_type
-)
 from utils.logging_config import app_logger as logger, set_debug_level
 from routes.page_routes import pages
 from routes.crx_routes import crx
