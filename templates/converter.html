@@ -1,0 +1,277 @@
+{% extends "base.html" %}
+
+{% block title %}Save Converter - DOHMBDY64{% endblock %}
+
+{% block styles %}
+<style>
+    .retro-input {
+        background: rgba(0, 0, 0, 0.7);
+        border: 2px solid #f97316;
+        color: #fbbf24;
+        font-family: 'VT323', monospace;
+        padding: 0.75rem 1rem;
+        width: 100%;
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+
+    .retro-input:focus,
+    .retro-input[value]:not([value=""]) {
+        outline: none;
+        box-shadow: 0 0 10px #f97316;
+        animation: inputGlow 2s ease-in-out infinite;
+    }
+
+    @keyframes inputGlow {
+        0% { box-shadow: 0 0 10px #f97316; }
+        50% { box-shadow: 0 0 20px #f97316; }
+        100% { box-shadow: 0 0 10px #f97316; }
+    }
+
+    .bg-gray-800 {
+        transition: box-shadow 0.3s ease;
+    }
+
+    .bg-gray-800:hover {
+        box-shadow: 0 0 25px #f97316;
+    }
+
+    /* Disabled button styles */
+    .retro-button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        animation: none !important;
+        box-shadow: none !important;
+        transform: none !important;
+        border-color: #666;
+    }
+
+    .retro-button:disabled:hover {
+        animation: none !important;
+        box-shadow: none !important;
+        transform: none !important;
+        background-color: #1a1a1a;
+    }
+
+    .retro-button:disabled:active {
+        transform: none !important;
+    }
+
+    /* Tab styles */
+    .tab-container {
+        border-bottom: 2px solid #f97316;
+        margin-bottom: 1rem;
+    }
+
+    .tab-button {
+        background: transparent;
+        border: none;
+        color: #6b7280;
+        padding: 0.5rem 1rem;
+        font-family: 'VT323', monospace;
+        font-size: 1.2rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -2px;
+    }
+
+    .tab-button:hover {
+        color: #fbbf24;
+    }
+
+    .tab-button.active {
+        color: #fbbf24;
+        border-bottom: 2px solid #f97316;
+    }
+
+    .tab-content {
+        display: none;
+    }
+
+    .tab-content.active {
+        display: block;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-4xl mb-8 text-center text-white font-vt323">Save File Converter</h1>
+    
+    <div class="grid grid-cols-1 gap-8">
+        <!-- Upload Section -->
+        <div class="bg-gray-800 p-6 rounded-lg border-2 border-orange-500 shadow-lg">
+            <!-- Tabs Navigation -->
+            <div class="tab-container">
+                <button class="tab-button active" data-tab="save-editor">Save Editor</button>
+                <button class="tab-button" data-tab="wsref-editor">WSRef Editor</button>
+                <button class="tab-button" data-tab="wsdir-editor">WSDir Editor</button>
+            </div>
+
+            <!-- Save Editor Tab -->
+            <div id="save-editor" class="tab-content active">
+                <form id="save-form" class="flex flex-col items-center max-w-2xl mx-auto">
+                    <div class="text-center w-full">
+                        <label for="save-file" class="block text-2xl mb-4 font-vt323 text-white">Upload Save File:</label>
+                        <div class="flex flex-col gap-2 w-full max-w-xl mx-auto">
+                            <input type="text" readonly class="retro-input w-full text-center" id="file-name-display" placeholder="Choose a .txt file...">
+                            <input type="file" id="save-file" name="file" accept=".txt" class="hidden" onchange="updateFileName(this)">
+                            <button type="button" onclick="document.getElementById('save-file').click()" class="retro-button w-full">Browse Files</button>
+                        </div>
+                    </div>
+                    <div class="flex justify-center mt-6">
+                        <button type="submit" class="retro-button" id="convert-save-button" disabled>Convert Save</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- WSRef Editor Tab -->
+            <div id="wsref-editor" class="tab-content">
+                <div class="text-center">
+                    <h2 class="text-2xl mb-4 font-vt323 text-white">WSRef Editor</h2>
+                    <p class="text-gray-300 mb-4">View and explore game reference data.</p>
+                    <div class="flex flex-col gap-2 w-full max-w-xl mx-auto">
+                        <input type="text" readonly class="retro-input w-full text-center" id="wsref-file-display" placeholder="Choose a .assets file...">
+                        <input type="file" id="wsref-file" name="file" accept=".assets" class="hidden" onchange="updateWSRefFileName(this)">
+                        <button type="button" onclick="document.getElementById('wsref-file').click()" class="retro-button w-full">Browse Files</button>
+                        <button id="load-wsref-button" class="retro-button" disabled>Load Reference Data</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- WSDir Editor Tab -->
+            <div id="wsdir-editor" class="tab-content">
+                <div class="text-center">
+                    <h2 class="text-2xl mb-4 font-vt323 text-white">WSDir Editor</h2>
+                    <p class="text-gray-300 mb-4">Edit WSDir configuration files.</p>
+                    <div class="flex flex-col gap-2 w-full max-w-xl mx-auto">
+                        <input type="text" readonly class="retro-input w-full text-center" id="wsdir-file-display" placeholder="Choose a .txt file...">
+                        <input type="file" id="wsdir-file" name="file" accept=".txt" class="hidden" onchange="updateWSDirFileName(this)">
+                        <button type="button" onclick="document.getElementById('wsdir-file').click()" class="retro-button w-full">Browse Files</button>
+                        <button id="load-wsdir-button" class="retro-button" disabled>Load WSDir Data</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Editor Section -->
+        <div class="bg-gray-800 p-6 rounded-lg border-2 border-orange-500 shadow-lg hidden" id="editor-section">
+            <h2 class="text-2xl mb-4 font-vt323 text-white">Edit Data</h2>
+            <div id="json-editor" class="mb-6 rounded" style="height: 500px; border: none;"></div>
+            <div class="flex justify-center gap-4">
+                <button id="save-button" class="retro-button" disabled>Save Changes</button>
+                <button id="download-json" class="retro-button">Download JSON</button>
+            </div>
+        </div>
+
+        <!-- Help Section -->
+        <div class="bg-gray-800 p-6 rounded-lg border-2 border-orange-500 shadow-lg">
+            <h2 class="text-2xl mb-4 font-vt323">Help</h2>
+            <div class="space-y-4 text-gray-300">
+                <p>This tool allows you to:</p>
+                <ol class="list-decimal list-inside space-y-2 ml-4">
+                    <li>Upload and decrypt save files</li>
+                    <li>View and edit save data, WSRef data, or WSDir data</li>
+                    <li>Download the modified files</li>
+                    <li>Export the data as JSON</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Error Console -->
+<div class="error-console-overlay"></div>
+<div class="error-console"></div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsoneditor/10.1.2/jsoneditor.min.js"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/jsoneditor/10.1.2/jsoneditor.min.css" rel="stylesheet">
+<style>
+    /* Override JSON editor default styles */
+    div.jsoneditor,
+    div.jsoneditor-menu {
+        border-color: #f97316;
+        background-color: #1f2937;
+    }
+    
+    div.jsoneditor-menu {
+        background-color: #374151;
+        border-bottom: 1px solid #f97316;
+    }
+    
+    div.jsoneditor-tree,
+    div.jsoneditor textarea.jsoneditor-text {
+        background-color: #1f2937;
+        color: #fbbf24;
+    }
+    
+    div.jsoneditor-field,
+    div.jsoneditor-value {
+        color: #fbbf24;
+    }
+    
+    div.jsoneditor-search {
+        background-color: #374151;
+    }
+    
+    div.jsoneditor-search input {
+        color: #fbbf24;
+        background-color: #1f2937;
+    }
+    
+    div.jsoneditor-frame {
+        background-color: #1f2937;
+        border-color: #f97316;
+    }
+    
+    div.jsoneditor-navigation-bar {
+        background-color: #374151;
+        border-bottom: 1px solid #f97316;
+    }
+</style>
+<script>
+function updateFileName(input) {
+    const fileName = input.files[0] ? input.files[0].name : 'Choose a .txt file...';
+    document.getElementById('file-name-display').value = fileName;
+    document.getElementById('convert-save-button').disabled = !input.files[0];
+}
+
+function updateWSRefFileName(input) {
+    const fileName = input.files[0] ? input.files[0].name : 'Choose a .assets file...';
+    document.getElementById('wsref-file-display').value = fileName;
+    document.getElementById('load-wsref-button').disabled = !input.files[0];
+}
+
+function updateWSDirFileName(input) {
+    const fileName = input.files[0] ? input.files[0].name : 'Choose a .txt file...';
+    document.getElementById('wsdir-file-display').value = fileName;
+    document.getElementById('load-wsdir-button').disabled = !input.files[0];
+}
+
+// Tab functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const tabs = document.querySelectorAll('.tab-button');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            // Remove active class from all tabs and contents
+            tabs.forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Add active class to clicked tab and its content
+            tab.classList.add('active');
+            const contentId = tab.getAttribute('data-tab');
+            document.getElementById(contentId).classList.add('active');
+            
+            // Hide editor section when switching tabs
+            document.getElementById('editor-section').classList.add('hidden');
+        });
+    });
+});
+</script>
+<script src="{{ url_for('static', filename='js/converter.js') }}"></script>
+{% endblock %} 

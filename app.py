@@ -1,10 +1,8 @@
-from flask import Flask, request, jsonify, send_file
-from io import BytesIO
-from zipfile import ZipFile
-from services.crx_service import extract_extension_id, safe_download_crx, crx_to_zip, get_extension_name
+from flask import Flask
 from utils.logging_config import app_logger as logger, set_debug_level
 from routes.page_routes import pages
 from routes.crx_routes import crx
+from routes.converter_routes import converter
 
 app = Flask(__name__)
 
@@ -14,6 +12,7 @@ set_debug_level(debug=True)  # Set to False in production
 # Register blueprints
 app.register_blueprint(pages)
 app.register_blueprint(crx)
+app.register_blueprint(converter)
 
 if __name__ == '__main__':
     app.run(debug=True) 

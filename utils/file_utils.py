@@ -1,3 +1,56 @@
+import os
+import tempfile
+import clr
+clr.AddReference('System')
+from System import Boolean, Int32, Double, Convert
+
+def get_temp_dir():
+    """Get a unique temporary directory for this session"""
+    temp_dir = os.path.join(tempfile.gettempdir(), 'save_editor')
+    os.makedirs(temp_dir, exist_ok=True)
+    return temp_dir
+
+def serialize_json(obj, in_game_data=False):
+    """Serialize JSON in the same format as LitJson.JsonMapper"""
+    if isinstance(obj, dict):
+        # Sort keys to ensure consistent ordering
+        items = sorted(obj.items())
+        parts = []
+        for key, value in items:
+            # Keys are always strings in JSON
+            key_str = f'"{key}"'
+            # Only convert to strings in game data
+            value_str = serialize_json(value, in_game_data=(in_game_data or key == "value"))
+            parts.append(f"{key_str}:{value_str}")
+        return "{" + ",".join(parts) + "}"
+    elif isinstance(obj, (list, tuple)):
+        return "[" + ",".join(serialize_json(x, in_game_data) for x in obj) + "]"
+    elif isinstance(obj, bool):
+        if in_game_data:
+            # Use the exact same bool.Parse that the game uses
+            return f'"{Convert.ToString(obj)}"'  # C#'s native boolean string conversion
+        else:
+            return "true" if obj else "false"
+    elif isinstance(obj, int):
+        if in_game_data:
+            # Use C#'s Int32.ToString() directly
+            return f'"{Int32(obj).ToString()}"'
+        else:
+            return str(obj)
+    elif isinstance(obj, float):
+        if in_game_data:
+            # Use C#'s Double.ToString() directly
+            return f'"{Double(obj).ToString()}"'
+        else:
+            return str(obj)
+    elif obj is None:
+        return "null"
+    else:
+        # Strings need to be escaped
+        return f'"{str(obj).replace('"', '\\"')}"' 
+
+
+
 def is_binary_file(filename):
     """Check if a file is likely to be binary based on its extension."""
     binary_extensions = {
