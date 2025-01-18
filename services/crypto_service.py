@@ -61,9 +61,11 @@ class SaveCrypto:
                 logger.debug("Decrypting save data...")
                 logger.debug(f"Input data length: {len(data)} bytes")
                 
-                # Read from binary stream like the game does
+                # Create memory stream from input bytes
                 mem_stream = MemoryStream(data)
                 binary_reader = BinaryReader(mem_stream)
+                
+                # Read the encrypted string from the binary stream
                 encrypted_str = binary_reader.ReadString()
                 logger.debug(f"Read string length: {len(encrypted_str)}")
                 
@@ -192,12 +194,39 @@ class SaveCrypto:
         if not wsrefdata:
             raise ValueError("Could not find WSREFDATA in assets file")
             
-        # Get the encrypted bytes
-        encrypted_bytes = wsrefdata.m_Script
+        # Get the encrypted string (already a string, no need to decode)
+        encrypted_str = wsrefdata.m_Script
+        logger.debug(f"Got encrypted string of length: {len(encrypted_str)}")
         
-        # Decrypt the data
-        decrypted_json = SaveCrypto.decrypt(encrypted_bytes, filepath=filepath)
+        # Remove any padding characters
+        encrypted_str = encrypted_str[len(encrypted_str) % 4:]
+        logger.debug(f"After removing padding, length: {len(encrypted_str)}")
         
-        # Parse JSON
-        return json.loads(decrypted_json)
+        # Create RijndaelManaged with game's settings
+        rijndael = RijndaelManaged()
+        rijndael.Key = Encoding.UTF8.GetBytes(SaveCrypto.REFDATA_KEY)
+        rijndael.Mode = CipherMode.ECB
+        rijndael.Padding = PaddingMode.PKCS7
+        rijndael.BlockSize = 128
+        
+        try:
+            # Convert base64 string to bytes
+            from System import Convert
+            encrypted = Convert.FromBase64String(encrypted_str)
+            logger.debug(f"Converted to bytes, length: {len(encrypted)}")
+            
+            # Create decryptor and decrypt
+            decryptor = rijndael.CreateDecryptor()
+            decrypted = decryptor.TransformFinalBlock(encrypted, 0, len(encrypted))
+            
+            # Convert back to string using UTF8 and parse JSON
+            decrypted_str = Encoding.UTF8.GetString(decrypted)
+            logger.debug(f"Decrypted string length: {len(decrypted_str)}")
+            logger.debug(f"Sample of decrypted data: {decrypted_str[:100]}")
+            
+            return json.loads(decrypted_str)
+            
+        except Exception as e:
+            logger.error(f"Error during WSRef decryption: {str(e)}")
+            raise
     

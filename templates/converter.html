@@ -111,19 +111,18 @@
 
             <!-- Save Editor Tab -->
             <div id="save-editor" class="tab-content active">
-                <form id="save-form" class="flex flex-col items-center max-w-2xl mx-auto">
-                    <div class="text-center w-full">
-                        <label for="save-file" class="block text-2xl mb-4 font-vt323 text-white">Upload Save File:</label>
+                <div class="text-center">
+                    <h2 class="text-2xl mb-4 font-vt323 text-white">Save Editor</h2>
+                    <p class="text-gray-300 mb-4">Edit and decrypt save files.</p>
+                    <form id="save-form">
                         <div class="flex flex-col gap-2 w-full max-w-xl mx-auto">
                             <input type="text" readonly class="retro-input w-full text-center" id="file-name-display" placeholder="Choose a .txt file...">
                             <input type="file" id="save-file" name="file" accept=".txt" class="hidden" onchange="updateFileName(this)">
                             <button type="button" onclick="document.getElementById('save-file').click()" class="retro-button w-full">Browse Files</button>
+                            <button type="submit" class="retro-button" id="convert-save-button" disabled>LOAD SAVE DATA</button>
                         </div>
-                    </div>
-                    <div class="flex justify-center mt-6">
-                        <button type="submit" class="retro-button" id="convert-save-button" disabled>Convert Save</button>
-                    </div>
-                </form>
+                    </form>
+                </div>
             </div>
 
             <!-- WSRef Editor Tab -->

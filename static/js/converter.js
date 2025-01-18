@@ -86,7 +86,8 @@ document.getElementById('save-form').addEventListener('submit', async (e) => {
             document.getElementById('editor-section').classList.remove('hidden');
             document.getElementById('save-button').disabled = true;
             document.getElementById('save-button').classList.add('opacity-50', 'cursor-not-allowed');
-            showRetroLoadingMessage('SAVE FILE LOADED SUCCESSFULLY');
+            console.log('Save file loaded successfully');
+            fileInput.value = '';
         } else {
             showError(result.error);
         }
@@ -129,7 +130,7 @@ document.getElementById('save-button').addEventListener('click', async () => {
             originalData = JSON.stringify(data);
             document.getElementById('save-button').disabled = true;
             document.getElementById('save-button').classList.add('opacity-50', 'cursor-not-allowed');
-            showRetroLoadingMessage(activeTab === 'wsdir-editor' ? 'WSDIR FILE SAVED SUCCESSFULLY' : 'SAVE FILE DOWNLOADED SUCCESSFULLY');
+            console.log(activeTab === 'wsdir-editor' ? 'WSDir file saved successfully' : 'Save file downloaded successfully');
         } else {
             const error = await response.json();
             showError(error.error);
@@ -155,16 +156,28 @@ editor.aceEditor?.on('change', () => {
 document.getElementById('download-json').addEventListener('click', () => {
     try {
         const data = editor.get();
+        const activeTab = document.querySelector('.tab-button.active').getAttribute('data-tab');
+        
+        // Get base filename without extension
+        let jsonFilename;
+        if (activeTab === 'wsref-editor') {
+            jsonFilename = currentFileName.replace('.assets', '.json');
+        } else if (activeTab === 'wsdir-editor' || activeTab === 'save-editor') {
+            jsonFilename = currentFileName.replace('.txt', '.json');
+        } else {
+            jsonFilename = currentFileName + '.json';
+        }
+
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = currentFileName.replace('.txt', '.json');
+        a.download = jsonFilename;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
-        showRetroLoadingMessage('JSON FILE DOWNLOADED SUCCESSFULLY');
+        console.log('JSON file downloaded successfully');
     } catch (error) {
         showError('Error downloading JSON: ' + error.message);
     }
@@ -180,11 +193,12 @@ document.getElementById('load-wsref-button').addEventListener('click', async () 
         return;
     }
 
-    if (!file.filename.toLowerCase().endsWith('.assets')) {
+    if (!file.name.toLowerCase().endsWith('.assets')) {
         showError('Only .assets files are allowed.');
         return;
     }
 
+    currentFileName = file.name;
     const formData = new FormData();
     formData.append('file', file);
 
@@ -201,7 +215,8 @@ document.getElementById('load-wsref-button').addEventListener('click', async () 
             document.getElementById('editor-section').classList.remove('hidden');
             document.getElementById('save-button').disabled = true;
             document.getElementById('save-button').classList.add('opacity-50', 'cursor-not-allowed');
-            showRetroLoadingMessage('WSREF DATA LOADED SUCCESSFULLY');
+            console.log('WSRef data loaded successfully');
+            fileInput.value = '';
         } else {
             showError(result.error);
         }
@@ -242,7 +257,8 @@ document.getElementById('load-wsdir-button').addEventListener('click', async () 
             document.getElementById('editor-section').classList.remove('hidden');
             document.getElementById('save-button').disabled = true;
             document.getElementById('save-button').classList.add('opacity-50', 'cursor-not-allowed');
-            showRetroLoadingMessage('WSDIR DATA LOADED SUCCESSFULLY');
+            console.log('WSDir data loaded successfully');
+            fileInput.value = '';
         } else {
             showError(result.error);
         }
