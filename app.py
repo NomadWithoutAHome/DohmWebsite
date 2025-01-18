@@ -2,7 +2,7 @@ from flask import Flask
 from utils.logging_config import app_logger as logger, set_debug_level
 from routes.page_routes import pages
 from routes.crx_routes import crx
-from routes.converter_routes import converter
+# from routes.converter_routes import converter
 
 app = Flask(__name__)
 
