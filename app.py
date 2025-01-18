@@ -12,7 +12,7 @@ set_debug_level(debug=True)  # Set to False in production
 # Register blueprints
 app.register_blueprint(pages)
 app.register_blueprint(crx)
-app.register_blueprint(converter)
+#app.register_blueprint(converter)
 
 if __name__ == '__main__':
     app.run(debug=True) 
