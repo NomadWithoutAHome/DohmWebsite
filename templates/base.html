@@ -5,10 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Dohmboy64{% endblock %}</title>
     
+    <!-- Critical CSS -->
+    <style>
+        .loading {
+            visibility: hidden;
+        }
+    </style>
+    
+    <!-- Preload fonts -->
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=VT323&display=swap" as="style">
+    
     <!-- Common CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/main.css') }}" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
     
     <!-- Page-specific CSS -->
     {% block styles %}{% endblock %}

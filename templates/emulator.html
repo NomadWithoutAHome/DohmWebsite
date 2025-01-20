@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block title %}DOHMBDY64 - SNES Emulator{% endblock %}
+
+{% block head_scripts %}
+<script type="application/javascript">
+    // Initialize EmulatorJS configuration
+    window.EJS_player = '#game';
+    window.EJS_gameName = "Simpsons - Bart's Nightmare";
+    window.EJS_biosUrl = "";
+    window.EJS_gameUrl = "{{ url_for('static', filename='roms/Simpsons, The - Bart\'s Nightmare (USA).sfc')|replace(' ', '%20')|replace('\'', '%27') }}";
+    window.EJS_core = 'snes';
+    window.EJS_pathtodata = "{{ url_for('static', filename='emulator/') }}";
+    window.EJS_startOnLoaded = true;
+    window.EJS_DEBUG_XX = false;
+    window.EJS_disableDatabases = true;
+    window.EJS_threads = false;
+    window.EJS_defaultOptions = {fullscreen: false};
+</script>
+{% endblock %}
+
+{% block styles %}
+<style>
+    .crt-container {
+        position: relative;
+        width: 100%;
+        max-width: 800px;
+        margin: 0 auto;
+        background: #000;
+        border-radius: 20px;
+        padding: 20px;
+        box-shadow: 
+            inset 0 0 30px rgba(0,255,0,0.3),
+            0 0 20px rgba(0,255,0,0.5);
+        overflow: hidden;
+    }
+
+    .crt-screen {
+        position: relative;
+        width: 100%;
+        padding-top: 75%; /* 4:3 Aspect Ratio */
+        background: #000;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    #display {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+    }
+
+    #game {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100% !important;
+        height: 100% !important;
+    }
+
+    #game canvas {
+        width: 100% !important;
+        height: 100% !important;
+    }
+
+    .crt-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(
+            rgba(18, 16, 16, 0) 50%,
+            rgba(0, 0, 0, 0.25) 50%
+        );
+        background-size: 100% 4px;
+        pointer-events: none;
+        animation: scanlines 1s linear infinite;
+    }
+
+    .crt-overlay::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: radial-gradient(
+            circle at center,
+            transparent 0%,
+            rgba(0,0,0,0.3) 100%
+        );
+        pointer-events: none;
+    }
+
+    .crt-glow {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        box-shadow: 
+            inset 0 0 50px rgba(0,255,0,0.15),
+            inset 0 0 20px rgba(0,255,0,0.1);
+        pointer-events: none;
+    }
+
+    .emulator {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #000;
+    }
+
+    .crt-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .crt-button {
+        background: #1a1a1a;
+        border: 2px solid #00ff00;
+        color: #00ff00;
+        padding: 0.5rem 1rem;
+        font-family: 'VT323', monospace;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .crt-button:hover {
+        background: #00ff00;
+        color: #000;
+        box-shadow: 0 0 10px rgba(0,255,0,0.5);
+    }
+
+    @keyframes scanlines {
+        0% { transform: translateY(0); }
+        100% { transform: translateY(4px); }
+    }
+
+    .crt-power-light {
+        width: 10px;
+        height: 10px;
+        background: #00ff00;
+        border-radius: 50%;
+        position: absolute;
+        right: 20px;
+        top: 20px;
+        box-shadow: 0 0 10px #00ff00;
+        animation: blink 2s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="crt-container">
+        <div class="crt-power-light"></div>
+        <div class="crt-screen">
+            <div id="display">
+                <div id="game"></div>
+            </div>
+            <div class="crt-overlay"></div>
+            <div class="crt-glow"></div>
+        </div>
+        <div class="crt-buttons">
+            <button class="crt-button" onclick="EJS_restart()">Reset</button>
+            <button class="crt-button" onclick="toggleFullscreen()">Fullscreen</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script type="application/javascript" src="{{ url_for('static', filename='emulator/loader.js') }}"></script>
+<script>
+    function toggleFullscreen() {
+        const elem = document.querySelector('.crt-screen');
+        if (!document.fullscreenElement) {
+            elem.requestFullscreen().catch(err => {
+                console.error(`Error attempting to enable fullscreen: ${err.message}`);
+            });
+        } else {
+            document.exitFullscreen();
+        }
+    }
+</script>
+{% endblock %} 
