@@ -165,47 +165,62 @@ def get_extension_name(crx_content):
             # Remove duplicates while preserving order
             locales_to_try = list(dict.fromkeys(locales_to_try))
             
+            # Common message keys to try
+            message_keys = [
+                locale_key,  # Original key from manifest
+                'extension_name',  # Common key
+                'extensionName',   # Alternative format
+                'app_name',        # For apps
+                'appName',         # Alternative app format
+                'name',           # Simple name
+                'extName',        # Another common format
+                locale_key.lower(),  # Lowercase version
+                locale_key.upper(),  # Uppercase version
+            ]
+            
+            # Try each locale with each message key
             for locale in locales_to_try:
                 try:
                     locale_path = f'_locales/{locale}/messages.json'
                     logger.debug(f"Trying locale file: {locale_path}")
                     
-                    # Try to read and parse the locale file
                     try:
                         locale_data = json.loads(zip_file.read(locale_path).decode('utf-8'))
                     except:
                         continue
-                        
-                    # Check for the message in locale data
-                    if locale_key in locale_data:
-                        message = locale_data[locale_key]
-                        if isinstance(message, dict):
-                            name = message.get('message', '')
-                            if name:
-                                logger.debug(f"Found localized name: {name}")
-                                return name
+                    
+                    # Try each message key in this locale
+                    for key in message_keys:
+                        if key in locale_data:
+                            message = locale_data[key]
+                            if isinstance(message, dict):
+                                name = message.get('message', '')
+                                if name:
+                                    logger.debug(f"Found localized name using key '{key}' in locale '{locale}': {name}")
+                                    return name
                                 
                 except Exception as e:
                     logger.debug(f"Error reading locale {locale}: {str(e)}")
                     continue
-                    
-            # If we couldn't find a localized name, try common keys
-            common_keys = ['extName', 'extension_name', 'extensionName', 'app_name', 'appName']
-            if locale_key not in common_keys:
-                for key in common_keys:
-                    for locale in locales_to_try:
+            
+            # If we still haven't found a name, try searching all locales for any matching key
+            try:
+                for filename in zip_file.namelist():
+                    if filename.startswith('_locales/') and filename.endswith('/messages.json'):
                         try:
-                            locale_path = f'_locales/{locale}/messages.json'
-                            locale_data = json.loads(zip_file.read(locale_path).decode('utf-8'))
-                            if key in locale_data:
-                                message = locale_data[key]
-                                if isinstance(message, dict):
-                                    name = message.get('message', '')
-                                    if name:
-                                        logger.debug(f"Found name using common key {key}: {name}")
-                                        return name
+                            locale_data = json.loads(zip_file.read(filename).decode('utf-8'))
+                            for key in message_keys:
+                                if key in locale_data:
+                                    message = locale_data[key]
+                                    if isinstance(message, dict):
+                                        name = message.get('message', '')
+                                        if name:
+                                            logger.debug(f"Found name in {filename} using key '{key}': {name}")
+                                            return name
                         except:
                             continue
+            except Exception as e:
+                logger.debug(f"Error searching all locales: {str(e)}")
             
             # If all else fails, return None
             logger.warning("Could not find localized name")
