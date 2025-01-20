@@ -27,6 +27,10 @@ def download_extension():
             logger.error(f"Error downloading CRX: {error}")
             return error, 400
             
+        # Get extension name from CRX content
+        name = get_extension_name(crx_content)
+        logger.debug(f"Got extension name: {name}")
+            
         if format == 'zip':
             logger.debug("Converting CRX to ZIP")
             zip_content, error = crx_to_zip(crx_content)
@@ -38,14 +42,18 @@ def download_extension():
         else:
             content = crx_content
             mime_type = 'application/x-chrome-extension'
-        
-        # Get extension name for filename
-        name = None
-        if format == 'zip':
-            name = get_extension_name(content)
-            logger.debug(f"Got extension name: {name}")
 
-        filename = f"{name or extension_id}.{format}"
+        # Sanitize name for filename
+        if name:
+            # Replace invalid filename characters with underscores
+            import re
+            name = re.sub(r'[<>:"/\\|?*]', '_', name)
+            # Remove any leading/trailing spaces
+            name = name.strip()
+            filename = f"{name}.{format}"
+        else:
+            filename = f"{extension_id}.{format}"
+            
         logger.info(f"Successfully prepared {filename} for download")
         
         return send_file(

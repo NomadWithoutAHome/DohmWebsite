@@ -149,50 +149,70 @@ def get_extension_name(crx_content):
             name = manifest.get('name', '')
             logger.debug(f"Raw name from manifest: {name}")
             
-            # Handle localized name
-            if name.startswith('__MSG_') and name.endswith('__'):
-                locale_key = name[6:-2]  # Remove __MSG_ and __
-                logger.debug(f"Found localized name key: {locale_key}")
+            # If name is not localized, return it directly
+            if not name.startswith('__MSG_') or not name.endswith('__'):
+                return name if name else None
                 
+            # Handle localized name
+            locale_key = name[6:-2]  # Remove __MSG_ and __
+            logger.debug(f"Found localized name key: {locale_key}")
+            
+            # Get default locale from manifest
+            default_locale = manifest.get('default_locale', 'en')
+            
+            # Try multiple locales in order of preference
+            locales_to_try = ['en', default_locale, 'en_US', 'en_GB']
+            # Remove duplicates while preserving order
+            locales_to_try = list(dict.fromkeys(locales_to_try))
+            
+            for locale in locales_to_try:
                 try:
-                    # Try default locale first
-                    default_locale = manifest.get('default_locale', 'en')
-                    locale_path = f'_locales/{default_locale}/messages.json'
-                    logger.debug(f"Looking for locale file: {locale_path}")
+                    locale_path = f'_locales/{locale}/messages.json'
+                    logger.debug(f"Trying locale file: {locale_path}")
                     
-                    # Special handling for common keys
-                    if locale_key in ['extName', 'extension_name', 'extensionName', 'app_name', 'appName']:
-                        # Try multiple locale paths
-                        for locale in ['en', default_locale]:
-                            try:
-                                test_path = f'_locales/{locale}/messages.json'
-                                locale_data = json.loads(zip_file.read(test_path).decode('utf-8'))
-                                if locale_key in locale_data:
-                                    name = locale_data[locale_key]['message']
-                                    logger.debug(f"Found name in {test_path}: {name}")
-                                    break
-                            except Exception as e:
-                                logger.debug(f"Failed to read {test_path}: {e}")
-                                continue
-                    else:
-                        # Handle other localized strings
+                    # Try to read and parse the locale file
+                    try:
                         locale_data = json.loads(zip_file.read(locale_path).decode('utf-8'))
-                        name = locale_data.get(locale_key, {}).get('message', '')
+                    except:
+                        continue
                         
+                    # Check for the message in locale data
+                    if locale_key in locale_data:
+                        message = locale_data[locale_key]
+                        if isinstance(message, dict):
+                            name = message.get('message', '')
+                            if name:
+                                logger.debug(f"Found localized name: {name}")
+                                return name
+                                
                 except Exception as e:
-                    logger.error(f"Failed to get localized name: {e}")
-                    name = ''
+                    logger.debug(f"Error reading locale {locale}: {str(e)}")
+                    continue
+                    
+            # If we couldn't find a localized name, try common keys
+            common_keys = ['extName', 'extension_name', 'extensionName', 'app_name', 'appName']
+            if locale_key not in common_keys:
+                for key in common_keys:
+                    for locale in locales_to_try:
+                        try:
+                            locale_path = f'_locales/{locale}/messages.json'
+                            locale_data = json.loads(zip_file.read(locale_path).decode('utf-8'))
+                            if key in locale_data:
+                                message = locale_data[key]
+                                if isinstance(message, dict):
+                                    name = message.get('message', '')
+                                    if name:
+                                        logger.debug(f"Found name using common key {key}: {name}")
+                                        return name
+                        except:
+                            continue
             
-            # Sanitize the name - remove special characters and spaces
-            if name:
-                name = re.sub(r'[^\w\-]', '-', name)
-                name = re.sub(r'-+', '-', name)  # Remove multiple consecutive dashes
-                name = name.strip('-')  # Remove leading/trailing dashes
-                logger.debug(f"Sanitized name: {name}")
+            # If all else fails, return None
+            logger.warning("Could not find localized name")
+            return None
             
-            return name if name else None
     except Exception as e:
-        logger.error(f"Error extracting extension name: {e}")
+        logger.error(f"Error extracting extension name: {str(e)}", exc_info=True)
         return None
 
 def get_localized_message(z, message_name):
