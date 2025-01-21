@@ -27,4 +27,9 @@ def robots():
 @pages.route('/sitemap.xml')
 def sitemap():
     """Serve sitemap.xml from root URL."""
-    return send_from_directory(os.path.dirname(os.path.dirname(__file__)), 'sitemap.xml') 
+    return send_from_directory(os.path.dirname(os.path.dirname(__file__)), 'sitemap.xml')
+
+@pages.route('/fa4b4c68399845f58e77f242e4ae6e40.txt')
+def verify():
+    """Serve verification file from root URL."""
+    return send_from_directory(os.path.dirname(os.path.dirname(__file__)), 'fa4b4c68399845f58e77f242e4ae6e40.txt') 
