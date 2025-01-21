@@ -1,8 +1,42 @@
 from flask import Blueprint, render_template, send_from_directory
 from utils.logging_config import app_logger as logger
 import os
+import requests
+import json
 
 pages = Blueprint('pages', __name__)
+
+def notify_indexnow():
+    """Notify IndexNow about our URLs."""
+    key = "fa4b4c68399845f58e77f242e4ae6e40"
+    domain = "www.dohmboy64.com"
+    
+    payload = {
+        "host": domain,
+        "key": key,
+        "keyLocation": f"https://{domain}/{key}.txt",
+        "urlList": [
+            f"https://{domain}/",
+            f"https://{domain}/tools/chrome-downloader",
+            f"https://{domain}/tools/url-shortener"
+        ]
+    }
+    
+    headers = {
+        'Content-Type': 'application/json; charset=utf-8'
+    }
+    
+    try:
+        response = requests.post(
+            'https://api.indexnow.org/IndexNow',
+            headers=headers,
+            json=payload
+        )
+        logger.info(f"IndexNow notification response: {response.status_code}")
+        return response.status_code == 200
+    except Exception as e:
+        logger.error(f"Failed to notify IndexNow: {str(e)}")
+        return False
 
 @pages.route('/')
 def index():
@@ -32,4 +66,10 @@ def sitemap():
 @pages.route('/fa4b4c68399845f58e77f242e4ae6e40.txt')
 def verify():
     """Serve verification file from root URL."""
-    return send_from_directory(os.path.dirname(os.path.dirname(__file__)), 'fa4b4c68399845f58e77f242e4ae6e40.txt') 
+    return send_from_directory(os.path.dirname(os.path.dirname(__file__)), 'fa4b4c68399845f58e77f242e4ae6e40.txt')
+
+@pages.route('/notify-indexnow', methods=['POST'])
+def trigger_indexnow():
+    """Trigger IndexNow notification."""
+    success = notify_indexnow()
+    return {'success': success}, 200 if success else 500 
