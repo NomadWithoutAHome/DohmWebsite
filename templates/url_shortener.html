@@ -79,13 +79,35 @@
     }
 
     .option-toggle {
+        display: flex;
+        align-items: center;
+        padding: 0.5rem;
+        transition: all 0.2s ease;
         font-family: 'VT323', monospace;
         font-size: 1.2rem;
         color: #ff8c00;
-        cursor: pointer;
-        user-select: none;
-        display: block;
         margin-bottom: 1rem;
+        user-select: none;
+    }
+
+    .option-toggle:hover {
+        background: rgba(255,140,0,0.1);
+    }
+
+    .option-toggle input[type="checkbox"] {
+        appearance: none;
+        width: 20px;
+        height: 20px;
+        border: 3px solid #ff8c00;
+        background: #2a2a2a;
+        cursor: pointer;
+        margin-right: 10px;
+        position: relative;
+    }
+
+    .option-toggle input[type="checkbox"]:checked {
+        background: #f4511e;
+        box-shadow: inset 0 0 0 3px #2a2a2a;
     }
 
     .option-input {
