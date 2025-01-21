@@ -30,8 +30,8 @@
         border-radius: 20px;
         padding: 20px;
         box-shadow: 
-            inset 0 0 30px rgba(0,255,0,0.3),
-            0 0 20px rgba(0,255,0,0.5);
+            inset 0 0 30px rgba(255,140,0,0.3),
+            0 0 20px rgba(255,140,0,0.5);
         overflow: hidden;
     }
 
@@ -102,8 +102,8 @@
         right: 0;
         bottom: 0;
         box-shadow: 
-            inset 0 0 50px rgba(0,255,0,0.15),
-            inset 0 0 20px rgba(0,255,0,0.1);
+            inset 0 0 50px rgba(255,140,0,0.15),
+            inset 0 0 20px rgba(255,140,0,0.1);
         pointer-events: none;
     }
 
@@ -158,17 +158,17 @@
         left: 50%;
         width: 4px;
         height: 15px;
-        background: #00ff00;
+        background: #ff8c00;
         transform: translate(-50%, -50%);
         border-radius: 2px;
-        box-shadow: 0 0 5px rgba(0,255,0,0.5);
+        box-shadow: 0 0 5px rgba(255,140,0,0.5);
     }
 
     .crt-knob-button:hover {
         transform: rotate(15deg);
-        border-color: #00ff00;
+        border-color: #ff8c00;
         box-shadow: 
-            0 0 10px rgba(0,255,0,0.3),
+            0 0 10px rgba(255,140,0,0.3),
             inset 0 2px 4px rgba(255,255,255,0.1);
     }
 
@@ -178,10 +178,10 @@
 
     .crt-knob-label {
         font-family: 'VT323', monospace;
-        color: #00ff00;
+        color: #ff8c00;
         font-size: 0.8rem;
         text-transform: uppercase;
-        text-shadow: 0 0 5px rgba(0,255,0,0.5);
+        text-shadow: 0 0 5px rgba(255,140,0,0.5);
     }
 
     /* Add ridged texture to knobs */
@@ -201,12 +201,12 @@
     .crt-power-light {
         width: 10px;
         height: 10px;
-        background: #00ff00;
+        background: #ff8c00;
         border-radius: 50%;
         position: absolute;
         right: 20px;
         top: 20px;
-        box-shadow: 0 0 10px #00ff00;
+        box-shadow: 0 0 10px #ff8c00;
         animation: blink 2s ease-in-out infinite;
     }
 
@@ -235,7 +235,7 @@
         </div>
         <div class="crt-buttons">
             <div class="crt-knob">
-                <button class="crt-knob-button" onclick="EJS_restart()">
+                <button class="crt-knob-button" onclick="handleReset(this)">
                     <div class="crt-knob-ridges"></div>
                 </button>
                 <span class="crt-knob-label">Reset</span>
@@ -254,6 +254,21 @@
 {% block scripts %}
 <script type="application/javascript" src="{{ url_for('static', filename='emulator/loader.js') }}"></script>
 <script>
+    function handleReset(button) {
+        // Only rotate 30 degrees like the hover effect
+        button.style.transform = 'rotate(30deg)';
+        
+        // Try to reset the emulator if it's initialized
+        if (window.EJS_emulator && window.EJS_emulator.restart) {
+            window.EJS_emulator.restart();
+        }
+        
+        // Reset knob position after a short delay
+        setTimeout(() => {
+            button.style.transform = '';
+        }, 200);
+    }
+
     function toggleFullscreen() {
         const elem = document.querySelector('.crt-screen');
         if (!document.fullscreenElement) {
