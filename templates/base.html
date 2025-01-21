@@ -18,7 +18,7 @@
     <!-- Common CSS -->
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/main.css') }}" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="{{ url_for('static', filename='js/tailwind.min.js') }}"></script>
     
     <!-- Page-specific CSS -->
     {% block styles %}{% endblock %}
