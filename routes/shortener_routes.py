@@ -1,7 +1,6 @@
 from flask import Blueprint, render_template, request, jsonify, redirect
 from services.shortener_service import create_short_url, get_long_url
 from utils.logging_config import app_logger as logger
-import asyncio
 
 shortener = Blueprint('shortener', __name__)
 
@@ -11,7 +10,7 @@ def url_shortener_page():
     return render_template('url_shortener.html')
 
 @shortener.route('/api/shorten', methods=['POST'])
-async def shorten_url():
+def shorten_url():
     """Create a shortened URL."""
     try:
         data = request.get_json()
@@ -22,7 +21,7 @@ async def shorten_url():
         if not long_url:
             return jsonify({'error': 'URL is required'}), 400
             
-        short_url = await create_short_url(long_url, custom_path, expires_in_days)
+        short_url = create_short_url(long_url, custom_path, expires_in_days)
         return jsonify({'short_url': short_url})
         
     except ValueError as e:
@@ -33,10 +32,10 @@ async def shorten_url():
         return jsonify({'error': 'Internal server error'}), 500
 
 @shortener.route('/<path>')
-async def redirect_to_url(path):
+def redirect_to_url(path):
     """Redirect short URL to original URL."""
     try:
-        long_url = await get_long_url(path)
+        long_url = get_long_url(path)
         if long_url:
             return redirect(long_url)
         return 'URL not found or has expired', 404

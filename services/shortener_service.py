@@ -39,7 +39,7 @@ def is_valid_url(url):
         r'(?:/?|[/?]\S+)$', re.IGNORECASE)
     return url_pattern.match(url) is not None
 
-async def create_short_url(long_url, custom_path=None, expires_in_days=None):
+def create_short_url(long_url, custom_path=None, expires_in_days=None):
     """Create a shortened URL."""
     if not is_valid_url(long_url):
         raise ValueError("Invalid URL format")
@@ -49,7 +49,7 @@ async def create_short_url(long_url, custom_path=None, expires_in_days=None):
             raise ValueError("Custom path can only contain letters, numbers, hyphens, and underscores")
         
         # Check for existing path case-insensitively
-        existing_url = await redis.get(f"url:{custom_path.lower()}")
+        existing_url = redis.get(f"url:{custom_path.lower()}")
         if existing_url:
             raise ValueError(f"The custom path '{custom_path}' is already in use. Please choose a different one.")
         path = custom_path
@@ -79,12 +79,12 @@ async def create_short_url(long_url, custom_path=None, expires_in_days=None):
     try:
         # Store in Redis with path as key
         key = f"url:{path.lower()}"
-        await redis.set(key, json.dumps(url_doc))
+        redis.set(key, json.dumps(url_doc))
         
         # Set expiration in Redis if specified
         if expires_at:
             expires_timestamp = datetime.fromisoformat(expires_at).timestamp()
-            await redis.expireat(key, int(expires_timestamp))
+            redis.expireat(key, int(expires_timestamp))
             
         logger.info(f"Created short URL: {path} -> {long_url} (expires: {expires_at})")
         return path
@@ -92,11 +92,11 @@ async def create_short_url(long_url, custom_path=None, expires_in_days=None):
         logger.error(f"Error creating short URL: {str(e)}", exc_info=True)
         raise
 
-async def get_long_url(path):
+def get_long_url(path):
     """Get the original URL from a shortened path."""
     try:
         # Get URL document from Redis
-        url_doc_str = await redis.get(f"url:{path.lower()}")
+        url_doc_str = redis.get(f"url:{path.lower()}")
         if not url_doc_str:
             return None
 
@@ -110,7 +110,7 @@ async def get_long_url(path):
 
         # Update visit count
         url_doc['visits'] += 1
-        await redis.set(f"url:{path.lower()}", json.dumps(url_doc))
+        redis.set(f"url:{path.lower()}", json.dumps(url_doc))
         
         logger.info(f"Redirecting {path} to {url_doc['long_url']} (visits: {url_doc['visits']})")
         return url_doc['long_url']
@@ -118,7 +118,7 @@ async def get_long_url(path):
         logger.error(f"Error retrieving URL: {str(e)}", exc_info=True)
         raise
 
-async def cleanup_expired_urls():
+def cleanup_expired_urls():
     """
     Note: With Redis, we don't need manual cleanup as Redis automatically removes expired keys.
     This function is kept for compatibility but does nothing.
