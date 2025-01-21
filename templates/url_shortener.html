@@ -235,6 +235,79 @@
         0% { transform: translateY(-100%); }
         100% { transform: translateY(100%); }
     }
+
+    /* Add rate limit modal styles */
+    .rate-limit-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .rate-limit-content {
+        background: #1a1a1a;
+        border: 2px solid #fbbf24;
+        border-radius: 5px;
+        padding: 2rem;
+        text-align: center;
+        max-width: 500px;
+        position: relative;
+        animation: rateLimitGlow 2s infinite;
+    }
+
+    @keyframes rateLimitGlow {
+        0% { box-shadow: 0 0 15px #fbbf24; }
+        50% { box-shadow: 0 0 30px #fbbf24; }
+        100% { box-shadow: 0 0 15px #fbbf24; }
+    }
+
+    .rate-limit-title {
+        color: #fbbf24;
+        font-family: 'VT323', monospace;
+        font-size: 2rem;
+        margin-bottom: 1rem;
+        text-shadow: 0 0 10px #fbbf24;
+    }
+
+    .rate-limit-message {
+        color: #fbbf24;
+        font-family: 'VT323', monospace;
+        font-size: 1.2rem;
+        margin: 1rem 0;
+    }
+
+    .rate-limit-close {
+        background: #2a2a2a;
+        border: 2px solid #fbbf24;
+        color: #fbbf24;
+        padding: 0.5rem 1rem;
+        border-radius: 5px;
+        cursor: pointer;
+        font-family: 'VT323', monospace;
+        font-size: 1.2rem;
+        margin-top: 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .rate-limit-close:hover {
+        background: #fbbf24;
+        color: #1a1a1a;
+        box-shadow: 0 0 15px #fbbf24;
+    }
+
+    .remaining-requests {
+        color: #ff8c00;
+        font-family: 'VT323', monospace;
+        font-size: 1rem;
+        margin-top: 0.5rem;
+        text-align: right;
+    }
 </style>
 {% endblock %}
 
@@ -302,6 +375,19 @@
         <button class="error-modal-close" onclick="closeInappropriateContentModal()">Got it!</button>
     </div>
 </div>
+
+<!-- Add the rate limit modal -->
+<div id="rate-limit-modal" class="rate-limit-modal">
+    <div class="rate-limit-content">
+        <div class="scanline"></div>
+        <h2 class="rate-limit-title">Slow Down!</h2>
+        <p class="rate-limit-message">You've reached the hourly limit.</p>
+        <p class="rate-limit-message" id="rate-limit-timer"></p>
+        <button class="rate-limit-close" onclick="closeRateLimitModal()">Got it!</button>
+    </div>
+</div>
+
+<div class="remaining-requests" id="remaining-requests"></div>
 {% endblock %}
 
 {% block scripts %}
@@ -327,6 +413,36 @@
     function closeInappropriateContentModal() {
         const modal = document.getElementById('inappropriate-content-modal');
         modal.style.display = 'none';
+    }
+
+    function showRateLimitModal(resetTime) {
+        const modal = document.getElementById('rate-limit-modal');
+        const timerElement = document.getElementById('rate-limit-timer');
+        modal.style.display = 'flex';
+        
+        // Start countdown timer
+        let timeLeft = resetTime;
+        const timer = setInterval(() => {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            timerElement.textContent = `Try again in ${minutes}:${seconds.toString().padStart(2, '0')}`;
+            
+            if (timeLeft <= 0) {
+                clearInterval(timer);
+                closeRateLimitModal();
+            }
+            timeLeft--;
+        }, 1000);
+    }
+
+    function closeRateLimitModal() {
+        const modal = document.getElementById('rate-limit-modal');
+        modal.style.display = 'none';
+    }
+
+    function updateRemainingRequests(remaining) {
+        const element = document.getElementById('remaining-requests');
+        element.textContent = `Remaining requests this hour: ${remaining}`;
     }
 
     async function checkContentSafety(url, customPath) {
@@ -383,11 +499,22 @@
             
             const data = await response.json();
             
+            if (response.status === 429) {
+                // Rate limit exceeded
+                showRateLimitModal(data.reset_in_seconds);
+                return;
+            }
+            
             if (response.ok) {
                 const shortUrl = `https://www.short.dohmboy64.com/${data.short_url}`;
                 document.getElementById('short-url').textContent = shortUrl;
                 resultContainer.style.display = 'block';
                 errorContainer.style.display = 'none';
+                
+                // Update remaining requests
+                if (data.remaining_requests !== undefined) {
+                    updateRemainingRequests(data.remaining_requests);
+                }
             } else {
                 errorContainer.textContent = data.error || 'An error occurred';
                 errorContainer.style.display = 'block';

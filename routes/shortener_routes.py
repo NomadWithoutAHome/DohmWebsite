@@ -1,10 +1,12 @@
 from flask import Blueprint, render_template, request, jsonify, redirect
 from services.shortener_service import create_short_url, get_long_url
-from utils.logging_config import app_logger as logger
 from services.content_filter_service import ContentFilterService
+from services.rate_limiter_service import RateLimiter
+from utils.logging_config import app_logger as logger
 
 shortener = Blueprint('shortener', __name__)
 content_filter = ContentFilterService()
+rate_limiter = RateLimiter()
 
 @shortener.route('/tools/url-shortener')
 def url_shortener_page():
@@ -12,9 +14,22 @@ def url_shortener_page():
     return render_template('url_shortener.html')
 
 @shortener.route('/api/shorten', methods=['POST'])
-def shorten_url():
+async def shorten_url():
     """Create a shortened URL."""
     try:
+        # Get client IP
+        client_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+        
+        # Check rate limit
+        is_limited, reset_time = await rate_limiter.is_rate_limited(client_ip)
+        if is_limited:
+            remaining_time = reset_time if reset_time else 3600
+            return jsonify({
+                'error': 'Rate limit exceeded',
+                'reset_in_seconds': remaining_time,
+                'message': f'Please try again in {remaining_time//60} minutes'
+            }), 429
+
         data = request.get_json()
         long_url = data.get('url')
         custom_path = data.get('custom_path')
@@ -24,7 +39,14 @@ def shorten_url():
             return jsonify({'error': 'URL is required'}), 400
             
         short_url = create_short_url(long_url, custom_path, expires_in_days)
-        return jsonify({'short_url': short_url})
+        
+        # Get remaining requests
+        remaining = rate_limiter.get_remaining_requests(client_ip)
+        
+        return jsonify({
+            'short_url': short_url,
+            'remaining_requests': remaining
+        })
         
     except ValueError as e:
         logger.warning(f"Validation error: {str(e)}")
