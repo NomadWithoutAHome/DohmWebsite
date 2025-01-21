@@ -7,18 +7,54 @@
     
     <!-- Critical CSS -->
     <style>
-        .loading {
+        /* Hide content until CSS is loaded */
+        .js-loading * {
             visibility: hidden;
+        }
+        
+        .js-loading .loading {
+            visibility: visible;
+        }
+
+        /* Critical styles that prevent layout shift */
+        body {
+            background-color: #000;
+            color: #fff;
+            margin: 0;
+            min-height: 100vh;
+            font-family: 'VT323', monospace;
+        }
+
+        .retro-container {
+            min-height: 100vh;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .retro-container.loaded {
+            opacity: 1;
+        }
+
+        .loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-family: 'VT323', monospace;
+            color: #00ff00;
+            text-align: center;
         }
     </style>
     
-    <!-- Preload fonts -->
+    <!-- Preload critical resources -->
     <link rel="preload" href="https://fonts.googleapis.com/css2?family=VT323&display=swap" as="style">
+    <link rel="preload" href="{{ url_for('static', filename='css/main.css') }}" as="style">
+    <link rel="preload" href="{{ url_for('static', filename='js/tailwind.min.js') }}" as="script">
     
-    <!-- Common CSS -->
+    <!-- Load styles -->
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/main.css') }}" rel="stylesheet">
-    <script src="{{ url_for('static', filename='js/tailwind.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/tailwind.min.js') }}" defer></script>
     
     <!-- Page-specific CSS -->
     {% block styles %}{% endblock %}
@@ -26,8 +62,23 @@
     <!-- Common JavaScript -->
     <script src="{{ url_for('static', filename='js/loading.js') }}" defer></script>
     {% block head_scripts %}{% endblock %}
+
+    <script>
+        // Add loading class to body
+        document.documentElement.classList.add('js-loading');
+        
+        // Remove loading class when resources are loaded
+        window.addEventListener('load', () => {
+            document.documentElement.classList.remove('js-loading');
+            document.querySelector('.retro-container').classList.add('loaded');
+            document.querySelector('.loading').style.display = 'none';
+        });
+    </script>
 </head>
 <body class="text-white">
+    <!-- Loading indicator -->
+    <div class="loading">LOADING...</div>
+
     <div class="scanline fixed inset-0 pointer-events-none"></div>
     <div class="retro-container min-h-screen">
         {% if request.endpoint == 'index' %}
