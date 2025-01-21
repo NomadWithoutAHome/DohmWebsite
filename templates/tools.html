@@ -1,6 +1,38 @@
 {% extends "base.html" %}
 
-{% block title %}CRX Tools - DOHMBDY64{% endblock %}
+{% block title %}Chrome Extension Downloader - DOHMBOY64{% endblock %}
+
+{% block meta_description %}Free Chrome extension downloader tool. Download any Chrome extension in CRX or ZIP format. Easy to use with extension URL or ID support.{% endblock %}
+
+{% block meta_keywords %}chrome extension downloader, crx downloader, chrome extension to zip, extension backup, chrome web store, dohmboy64{% endblock %}
+
+{% block og_description %}Download any Chrome extension in CRX or ZIP format. Free tool to backup and save Chrome extensions from the Chrome Web Store.{% endblock %}
+
+<!-- Add structured data for the Chrome Extension Downloader tool -->
+{% block structured_data %}
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "DOHMBOY64 Chrome Extension Downloader",
+    "url": "https://www.dohmboy64.com/tools/chrome-downloader",
+    "description": "Free tool to download Chrome extensions in CRX or ZIP format",
+    "applicationCategory": "UtilityApplication",
+    "operatingSystem": "Any",
+    "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+    },
+    "featureList": [
+        "Download extensions in CRX format",
+        "Convert extensions to ZIP format",
+        "Support for Chrome Web Store URLs",
+        "Direct extension ID input"
+    ]
+}
+</script>
+{% endblock %}
 
 {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/tools.css') }}">
