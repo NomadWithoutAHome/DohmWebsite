@@ -35,8 +35,13 @@ async def shorten_url():
         custom_path = data.get('custom_path')
         expires_in_days = data.get('expires_in_days')
         
-        if not long_url:
+        # Check if URL is provided before doing content check
+        if not long_url or not long_url.strip():
             return jsonify({'error': 'URL is required'}), 400
+            
+        # Now check content safety
+        if not content_filter.is_content_safe(long_url, custom_path):
+            return jsonify({'error': 'Inappropriate content detected', 'is_safe': False}), 400
             
         short_url = create_short_url(long_url, custom_path, expires_in_days)
         
