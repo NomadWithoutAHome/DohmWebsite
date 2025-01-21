@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Allow: /tools/url-shortener
+Allow: /tools/chrome-downloader
+
+# Sitemaps
+Sitemap: https://www.dohmboy64.com/sitemap.xml 

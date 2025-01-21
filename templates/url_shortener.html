@@ -1,6 +1,32 @@
 {% extends "base.html" %}
 
-{% block title %}URL Shortener - DOHMBDY64{% endblock %}
+{% block title %}URL Shortener - DOHMBOY64{% endblock %}
+
+{% block meta_description %}Free URL shortener with custom paths, expiration dates, and content filtering. Create short, memorable links for your long URLs with our retro-themed tool.{% endblock %}
+
+{% block meta_keywords %}url shortener, link shortener, custom urls, short links, url redirect, dohmboy64, retro url shortener{% endblock %}
+
+{% block og_description %}Create short, memorable links with our retro-themed URL shortener. Features custom paths, expiration dates, and content filtering.{% endblock %}
+
+<!-- Add structured data for the URL Shortener tool -->
+{% block structured_data %}
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "DOHMBOY64 URL Shortener",
+    "url": "https://www.dohmboy64.com/tools/url-shortener",
+    "description": "Free URL shortener with custom paths and expiration dates",
+    "applicationCategory": "UtilityApplication",
+    "operatingSystem": "Any",
+    "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+    }
+}
+</script>
+{% endblock %}
 
 {% block styles %}
 <style>
@@ -484,7 +510,15 @@
         const errorContainer = document.getElementById('error');
         
         try {
-            // First check content safety
+            // First check if URL is empty
+            if (!longUrl || !longUrl.trim()) {
+                errorContainer.textContent = 'URL is required';
+                errorContainer.style.display = 'block';
+                resultContainer.style.display = 'none';
+                return;
+            }
+
+            // Then check content safety
             const isSafe = await checkContentSafety(longUrl, customPath);
             
             if (!isSafe) {
