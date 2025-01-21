@@ -6,3 +6,4 @@ tinydb==4.8.0
 upstash-redis==1.0.0
 asgiref==3.7.2
 hypercorn==0.15.0
+better-profanity==0.7.0

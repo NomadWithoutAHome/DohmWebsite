@@ -1,8 +1,10 @@
 from flask import Blueprint, render_template, request, jsonify, redirect
 from services.shortener_service import create_short_url, get_long_url
 from utils.logging_config import app_logger as logger
+from services.content_filter_service import ContentFilterService
 
 shortener = Blueprint('shortener', __name__)
+content_filter = ContentFilterService()
 
 @shortener.route('/tools/url-shortener')
 def url_shortener_page():
@@ -42,4 +44,17 @@ def redirect_to_url(path):
         
     except Exception as e:
         logger.error(f"Error redirecting URL: {str(e)}", exc_info=True)
-        return 'Error redirecting URL', 500 
+        return 'Error redirecting URL', 500
+
+@shortener.route('/api/check-content', methods=['POST'])
+def check_content():
+    """Check if the URL and custom path are safe"""
+    data = request.get_json()
+    url = data.get('url')
+    custom_path = data.get('custom_path')
+
+    if not url:
+        return jsonify({'error': 'URL is required', 'is_safe': False}), 400
+
+    is_safe = content_filter.is_content_safe(url, custom_path)
+    return jsonify({'is_safe': is_safe}) 

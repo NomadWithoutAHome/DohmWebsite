@@ -148,6 +148,93 @@
     .expiry-select option {
         background: #1a1a1a;
     }
+
+    /* Add the retro error modal styles */
+    .error-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .error-modal-content {
+        background: #1a1a1a;
+        border: 2px solid #ff4444;
+        border-radius: 5px;
+        padding: 2rem;
+        text-align: center;
+        max-width: 500px;
+        position: relative;
+        animation: glowPulse 2s infinite;
+    }
+
+    @keyframes glowPulse {
+        0% { box-shadow: 0 0 15px #ff4444; }
+        50% { box-shadow: 0 0 30px #ff4444; }
+        100% { box-shadow: 0 0 15px #ff4444; }
+    }
+
+    .error-modal-title {
+        color: #ff4444;
+        font-family: 'VT323', monospace;
+        font-size: 2rem;
+        margin-bottom: 1rem;
+        text-shadow: 0 0 10px #ff4444;
+    }
+
+    .error-modal-gif {
+        width: 100%;
+        max-width: 300px;
+        margin: 1rem 0;
+        border: 2px solid #ff4444;
+        border-radius: 5px;
+    }
+
+    .error-modal-close {
+        background: #2a2a2a;
+        border: 2px solid #ff4444;
+        color: #ff4444;
+        padding: 0.5rem 1rem;
+        border-radius: 5px;
+        cursor: pointer;
+        font-family: 'VT323', monospace;
+        font-size: 1.2rem;
+        margin-top: 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .error-modal-close:hover {
+        background: #ff4444;
+        color: #1a1a1a;
+        box-shadow: 0 0 15px #ff4444;
+    }
+
+    .scanline {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+            to bottom,
+            rgba(255, 255, 255, 0) 0%,
+            rgba(255, 255, 255, 0.1) 10%,
+            rgba(255, 255, 255, 0) 100%
+        );
+        animation: scanline 8s linear infinite;
+        pointer-events: none;
+    }
+
+    @keyframes scanline {
+        0% { transform: translateY(-100%); }
+        100% { transform: translateY(100%); }
+    }
 </style>
 {% endblock %}
 
@@ -200,6 +287,21 @@
         </div>
     </div>
 </div>
+
+<!-- Add the error modal -->
+<div id="inappropriate-content-modal" class="error-modal">
+    <div class="error-modal-content">
+        <div class="scanline"></div>
+        <h2 class="error-modal-title">Try Again!</h2>
+        <img src="https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExMzNmZGh1MHVta2FkdXkxOG9xNnJmYjlxeXoybG5qcHg1ajh4eHlicCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3ohzdQ1IynzclJldUQ/giphy.gif" 
+             alt="Nope" 
+             class="error-modal-gif">
+        <p style="color: #ff4444; font-family: 'VT323', monospace; margin: 1rem 0;">
+            This content is not allowed!
+        </p>
+        <button class="error-modal-close" onclick="closeInappropriateContentModal()">Got it!</button>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -217,6 +319,37 @@
         }
     });
 
+    function showInappropriateContentModal() {
+        const modal = document.getElementById('inappropriate-content-modal');
+        modal.style.display = 'flex';
+    }
+
+    function closeInappropriateContentModal() {
+        const modal = document.getElementById('inappropriate-content-modal');
+        modal.style.display = 'none';
+    }
+
+    async function checkContentSafety(url, customPath) {
+        try {
+            const response = await fetch('/api/check-content', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    url: url,
+                    custom_path: customPath
+                })
+            });
+            
+            const data = await response.json();
+            return data.is_safe;
+        } catch (error) {
+            console.error('Error checking content safety:', error);
+            return false;
+        }
+    }
+
     async function shortenUrl() {
         const longUrl = document.getElementById('long-url').value;
         const customPathEnabled = document.getElementById('custom-path-checkbox').checked;
@@ -228,6 +361,14 @@
         const errorContainer = document.getElementById('error');
         
         try {
+            // First check content safety
+            const isSafe = await checkContentSafety(longUrl, customPath);
+            
+            if (!isSafe) {
+                showInappropriateContentModal();
+                return;
+            }
+
             const response = await fetch('/api/shorten', {
                 method: 'POST',
                 headers: {
@@ -268,8 +409,8 @@
             setTimeout(() => {
                 copyButton.textContent = 'Copy URL';
             }, 2000);
-        } catch (err) {
-            console.error('Failed to copy:', err);
+        } catch (error) {
+            console.error('Failed to copy:', error);
         }
     }
 </script>
