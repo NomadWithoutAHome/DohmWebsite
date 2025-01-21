@@ -8,9 +8,9 @@ def index():
     """Render the home page."""
     return render_template('index.html')
 
-@pages.route('/tools')
-def tools():
-    """Render the tools page."""
+@pages.route('/tools/chrome-downloader')
+def chrome_downloader():
+    """Render the Chrome Extension Downloader page."""
     return render_template('tools.html')
 
 @pages.route('/play')

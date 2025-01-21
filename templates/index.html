@@ -2,6 +2,116 @@
 
 {% block title %}Dohmboy64 - Home Page{% endblock %}
 
+{% block styles %}
+<style>
+    .tools-dropdown {
+        position: relative;
+        display: inline-block;
+    }
+
+    .retro-button.pressed {
+        transform: translateY(2px);
+        box-shadow: 
+            inset 0 2px 5px rgba(0,0,0,0.5),
+            inset 0 0 20px rgba(255,140,0,0.3),
+            0 0 15px rgba(255,140,0,0.5),
+            0 2px 4px rgba(0,0,0,0.3);
+        background: #1a1a1a;
+        border-color: #ff8c00;
+        text-shadow: 
+            0 0 5px rgba(255,140,0,0.8),
+            0 0 10px rgba(255,140,0,0.5);
+        color: #ff8c00;
+    }
+
+    .retro-button.pressed:hover {
+        box-shadow: 
+            inset 0 2px 5px rgba(0,0,0,0.5),
+            inset 0 0 25px rgba(255,140,0,0.4),
+            0 0 20px rgba(255,140,0,0.6),
+            0 2px 4px rgba(0,0,0,0.3);
+        text-shadow: 
+            0 0 8px rgba(255,140,0,0.9),
+            0 0 15px rgba(255,140,0,0.6);
+    }
+
+    .dropdown-content {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        margin-top: 1rem;
+        background: #1a1a1a;
+        /* Option 1: Wider dropdown (commented out for now) */
+        /* min-width: 300px; */
+        
+        /* Option 2: Original width with smaller font (currently used) */
+        min-width: 200px;
+        
+        border: 2px solid #ff8c00;
+        border-radius: 5px;
+        box-shadow: 
+            0 0 20px rgba(255,140,0,0.3),
+            inset 0 0 10px rgba(255,140,0,0.1);
+        z-index: 100;
+        animation: dropdownAppear 0.3s ease-out;
+    }
+
+    .dropdown-content::before {
+        content: '';
+        position: absolute;
+        top: -10px;
+        left: 50%;
+        transform: translateX(-50%);
+        border-left: 10px solid transparent;
+        border-right: 10px solid transparent;
+        border-bottom: 10px solid #ff8c00;
+    }
+
+    .dropdown-content.show {
+        display: block;
+    }
+
+    .dropdown-item {
+        display: block;
+        padding: 1rem;
+        color: #ff8c00;
+        text-decoration: none;
+        text-align: center;
+        font-family: 'VT323', monospace;
+        /* Option 2: Smaller font size (currently used) */
+        font-size: 0.9rem;
+        transition: all 0.2s ease;
+        border-bottom: 1px solid #333;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .dropdown-item:last-child {
+        border-bottom: none;
+    }
+
+    .dropdown-item:hover {
+        background: #2a2a2a;
+        color: #fff;
+        text-shadow: 0 0 5px #ff8c00;
+    }
+
+    @keyframes dropdownAppear {
+        from {
+            opacity: 0;
+            transform: translateX(-50%) translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="text-center space-y-6">
     <div class="console-window">
@@ -13,11 +123,34 @@
 <div class="flex flex-col md:flex-row gap-6 mt-8">
     <a href="{{ url_for('pages.play') }}" class="retro-button">START GAME</a>
     <button class="retro-button">CODE</button>
-    <a href="/tools" class="retro-button">TOOLS</a>
+    <div class="tools-dropdown">
+        <button class="retro-button" onclick="toggleToolsDropdown(this)">TOOLS</button>
+        <div class="dropdown-content">
+            <a href="{{ url_for('pages.chrome_downloader') }}" class="dropdown-item">Chrome Extension Downloader</a>
+            <a href="{{ url_for('shortener.url_shortener_page') }}" class="dropdown-item">URL Shortener</a>
+            <a href="#" class="dropdown-item">More Tools Coming Soon...</a>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/typewriter.js') }}"></script>
 <script src="{{ url_for('static', filename='js/index.js') }}"></script>
+<script>
+    function toggleToolsDropdown(button) {
+        const dropdown = button.nextElementSibling;
+        const isOpen = dropdown.classList.toggle('show');
+        button.classList.toggle('pressed', isOpen);
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function closeDropdown(e) {
+            if (!button.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.classList.remove('show');
+                button.classList.remove('pressed');
+                document.removeEventListener('click', closeDropdown);
+            }
+        });
+    }
+</script>
 {% endblock %} 

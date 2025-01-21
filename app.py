@@ -2,6 +2,7 @@ from flask import Flask, send_from_directory
 from utils.logging_config import app_logger as logger, set_debug_level
 from routes.page_routes import pages
 from routes.crx_routes import crx
+from routes.shortener_routes import shortener
 import mimetypes
 # from routes.converter_routes import converter
 
@@ -17,6 +18,7 @@ set_debug_level(debug=True)  # Set to False in production
 # Register blueprints
 app.register_blueprint(pages)
 app.register_blueprint(crx)
+app.register_blueprint(shortener)
 #app.register_blueprint(converter)
 
 @app.route('/static/<path:filename>')
