@@ -1,4 +1,5 @@
 from flask import Flask, send_from_directory
+import { SpeedInsights } from "@vercel/speed-insights/next"
 from utils.logging_config import app_logger as logger, set_debug_level
 from routes.page_routes import pages
 from routes.crx_routes import crx
