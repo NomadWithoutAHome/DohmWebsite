@@ -199,7 +199,7 @@
             const data = await response.json();
             
             if (response.ok) {
-                const shortUrl = `${window.location.protocol}//${window.location.host}/${data.short_url}`;
+                const shortUrl = `https://www.short.dohmboy64.com/${data.short_url}`;
                 document.getElementById('short-url').textContent = shortUrl;
                 resultContainer.style.display = 'block';
                 errorContainer.style.display = 'none';
