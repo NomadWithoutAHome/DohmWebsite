@@ -4,6 +4,7 @@ from routes.page_routes import pages
 from routes.crx_routes import crx
 from routes.shortener_routes import shortener
 import mimetypes
+from asgiref.wsgi import WsgiToAsgi
 # from routes.converter_routes import converter
 
 # Add proper MIME types
@@ -24,6 +25,9 @@ app.register_blueprint(shortener)
 @app.route('/static/<path:filename>')
 def serve_static(filename):
     return send_from_directory('static', filename)
+
+# Convert WSGI app to ASGI
+asgi_app = WsgiToAsgi(app)
 
 if __name__ == '__main__':
     app.run(debug=True) 
