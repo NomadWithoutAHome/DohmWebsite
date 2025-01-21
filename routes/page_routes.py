@@ -1,5 +1,6 @@
-from flask import Blueprint, render_template
+from flask import Blueprint, render_template, send_from_directory
 from utils.logging_config import app_logger as logger
+import os
 
 pages = Blueprint('pages', __name__)
 
@@ -16,4 +17,14 @@ def chrome_downloader():
 @pages.route('/play')
 def play():
     """Render the emulator page."""
-    return render_template('emulator.html') 
+    return render_template('emulator.html')
+
+@pages.route('/robots.txt')
+def robots():
+    """Serve robots.txt from root URL."""
+    return send_from_directory(os.path.dirname(os.path.dirname(__file__)), 'robots.txt')
+
+@pages.route('/sitemap.xml')
+def sitemap():
+    """Serve sitemap.xml from root URL."""
+    return send_from_directory(os.path.dirname(os.path.dirname(__file__)), 'sitemap.xml') 
