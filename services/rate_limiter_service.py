@@ -3,7 +3,10 @@ import time
 
 class RateLimiter:
     def __init__(self):
-        self.redis = Redis.from_env()
+        self.redis = Redis(
+            url="https://proven-warthog-57623.upstash.io",
+            token="AeEXAAIjcDExOWJiMzhkOTZkMTI0ODE4YjI5NWFhMzUyMDkxZTEwY3AxMA"
+        )
         self.window = 3600  # 1 hour window
         self.max_requests = 50  # Maximum requests per hour
 
