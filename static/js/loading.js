@@ -43,26 +43,17 @@ function showRetroLoadingMessage() {
     }, 2000);
 }
 
-// Show loading message on navigation
+// Show loading message only on index page and first visit
 document.addEventListener('DOMContentLoaded', () => {
-    // For regular link clicks
-    document.addEventListener('click', (e) => {
-        const link = e.target.closest('a');
-        if (link && !link.target && link.href && !link.href.startsWith('#')) {
-            showRetroLoadingMessage();
-        }
-    });
+    // Check if we're on the index page
+    const isIndexPage = window.location.pathname === '/' || window.location.pathname === '/index';
     
-    // For form submissions
-    document.addEventListener('submit', (e) => {
-        const form = e.target;
-        if (form.method.toLowerCase() !== 'post' || !form.hasAttribute('data-no-loading')) {
-            showRetroLoadingMessage();
-        }
-    });
+    // Check if this is the first visit this session
+    const hasVisited = sessionStorage.getItem('hasVisited');
     
-    // For initial page load
-    if (performance.navigation.type === performance.navigation.TYPE_RELOAD) {
+    if (isIndexPage && !hasVisited) {
         showRetroLoadingMessage();
+        // Mark that we've shown the loading screen
+        sessionStorage.setItem('hasVisited', 'true');
     }
 }); 
