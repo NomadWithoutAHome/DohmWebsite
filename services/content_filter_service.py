@@ -1,21 +1,125 @@
 import os
 import requests
-from better_profanity import profanity
+from better_profanity import Profanity
 from urllib.parse import urlparse
+import re
+import string
 
 class ContentFilterService:
     def __init__(self):
         self.safe_browsing_api_key = os.getenv('GOOGLE_SAFE_BROWSING_API_KEY')
         self.safe_browsing_url = 'https://safebrowsing.googleapis.com/v4/threatMatches:find'
         
-        # Initialize profanity filter with custom words
-        profanity.load_censor_words()
-        # Add additional words specific to your needs
-        custom_badwords = [
-            # Add your custom bad words here
-        ]
-        profanity.add_censor_words(custom_badwords)
-
+        self.profanity = Profanity()
+        # Add common leetspeak replacements
+        self.leetspeak_map = {
+            '0': 'o', '1': 'i', '3': 'e', '4': 'a',
+            '5': 's', '6': 'g', '7': 't', '@': 'a',
+            '$': 's', '!': 'i', '+': 't'
+        }
+        # Initialize with custom wordlist
+        self.custom_words = {
+            'porn', 'xxx', 'sex', 'adult', 'nsfw',
+            'nude', 'naked', 'pussy', 'dick', 'cock',
+            'ass', 'boob', 'tit', 'cum', 'wank',
+            'fap', 'masturbat', 'hentai', 'fuck',
+            'shit', 'bitch', 'cunt', 'slut', 'whore'
+        }
+        # Add variations of the words (uppercase, leetspeak, etc.)
+        self.initialize_word_variations()
+        
+    def initialize_word_variations(self):
+        """Create variations of banned words including leetspeak and common obfuscations"""
+        expanded_words = set()
+        for word in self.custom_words:
+            # Add the original word
+            expanded_words.add(word)
+            # Add uppercase variations
+            expanded_words.add(word.upper())
+            # Add variations with random uppercase letters
+            expanded_words.update(self.get_case_variations(word))
+            # Add leetspeak variations
+            expanded_words.update(self.get_leetspeak_variations(word))
+            # Add variations with repeated characters
+            expanded_words.update(self.get_repeated_char_variations(word))
+            
+        self.profanity.load_censor_words(expanded_words)
+        
+    def get_case_variations(self, word):
+        """Generate common case variations of a word"""
+        variations = {
+            word.capitalize(),
+            word.upper(),
+            word.lower(),
+            ''.join(c.upper() if i % 2 == 0 else c.lower() for i, c in enumerate(word))
+        }
+        return variations
+        
+    def get_leetspeak_variations(self, word):
+        """Generate leetspeak variations of a word"""
+        variations = set()
+        word_lower = word.lower()
+        
+        # Generate all possible leetspeak combinations
+        def generate_leetspeak(current, pos):
+            if pos == len(word_lower):
+                variations.add(current)
+                return
+            
+            char = word_lower[pos]
+            # Add normal character
+            generate_leetspeak(current + char, pos + 1)
+            # Add leetspeak replacement if available
+            for leet_char, normal_char in self.leetspeak_map.items():
+                if char == normal_char:
+                    generate_leetspeak(current + leet_char, pos + 1)
+        
+        generate_leetspeak("", 0)
+        return variations
+        
+    def get_repeated_char_variations(self, word):
+        """Generate variations with repeated characters"""
+        variations = set()
+        for i, char in enumerate(word):
+            if char in 'aeiou':  # Only duplicate vowels
+                variation = word[:i] + char * 2 + word[i+1:]
+                variations.add(variation)
+        return variations
+        
+    def normalize_text(self, text):
+        """Normalize text by removing spaces and converting leetspeak"""
+        if not text:
+            return ""
+        # Convert to lowercase and remove spaces
+        text = text.lower().replace(" ", "")
+        # Replace leetspeak characters
+        for leet, normal in self.leetspeak_map.items():
+            text = text.replace(leet, normal)
+        return text
+        
+    def contains_inappropriate_content(self, text):
+        """Check if text contains inappropriate content"""
+        if not text:
+            return False
+            
+        # Normalize the text
+        normalized = self.normalize_text(text)
+        
+        # Check original text
+        if self.profanity.contains_profanity(text):
+            return True
+            
+        # Check normalized text
+        if self.profanity.contains_profanity(normalized):
+            return True
+            
+        # Check for substrings that contain banned words
+        for word in self.custom_words:
+            if word in normalized:
+                return True
+                
+        return False
+        
     def check_url_safety(self, url):
         """Check if URL is safe using Google Safe Browsing API"""
         if not self.safe_browsing_api_key:
@@ -69,17 +173,16 @@ class ContentFilterService:
 
     def check_custom_path(self, path):
         """Check if custom path contains inappropriate content"""
-        return not profanity.contains_profanity(path)
+        return not self.contains_inappropriate_content(path)
 
     def is_content_safe(self, url, custom_path=None):
-        """Check both URL and custom path for safety"""
-        url_safe = self.check_url_safety(url)
-        
-        if not url_safe:
+        """Check if the URL and custom path are safe"""
+        # Check URL
+        if self.contains_inappropriate_content(url):
             return False
             
-        if custom_path:
-            path_safe = self.check_custom_path(custom_path)
-            return path_safe
+        # Check custom path if provided
+        if custom_path and self.contains_inappropriate_content(custom_path):
+            return False
             
         return True 
