@@ -3,10 +3,22 @@ from services.shortener_service import create_short_url, get_long_url
 from services.content_filter_service import ContentFilterService
 from services.rate_limiter_service import RateLimiter
 from utils.logging_config import app_logger as logger
+from urllib.parse import urlparse
+import re
+from datetime import datetime
+from functools import lru_cache
 
 shortener = Blueprint('shortener', __name__)
 content_filter = ContentFilterService()
 rate_limiter = RateLimiter()
+
+# Add more detailed error responses
+ERROR_MESSAGES = {
+    'invalid_url': {'error': 'Invalid URL format', 'code': 100},
+    'invalid_path': {'error': 'Invalid custom path', 'code': 101},
+    'rate_limit': {'error': 'Rate limit exceeded', 'code': 429},
+    'unsafe_content': {'error': 'Content violation', 'code': 403}
+}
 
 @shortener.route('/tools/url-shortener')
 def url_shortener_page():
@@ -39,9 +51,17 @@ async def shorten_url():
         if not long_url or not long_url.strip():
             return jsonify({'error': 'URL is required'}), 400
             
+        # Validate URL format
+        if not urlparse(long_url).scheme:
+            return jsonify(ERROR_MESSAGES['invalid_url']), 400
+
+        # Validate custom path format
+        if custom_path and not re.match(r'^[a-zA-Z0-9_-]{3,20}$', custom_path):
+            return jsonify(ERROR_MESSAGES['invalid_path']), 400
+            
         # Now check content safety
         if not content_filter.is_content_safe(long_url, custom_path):
-            return jsonify({'error': 'Inappropriate content detected', 'is_safe': False}), 400
+            return jsonify(ERROR_MESSAGES['unsafe_content']), 403
             
         short_url = create_short_url(long_url, custom_path, expires_in_days)
         
@@ -66,12 +86,14 @@ def redirect_to_url(path):
     try:
         long_url = get_long_url(path)
         if long_url:
+            # Log the click
+            logger.info(f"Redirect: {path} => {long_url}")
+            # Add analytics recording here
             return redirect(long_url)
-        return 'URL not found or has expired', 404
-        
+        return 'URL not found', 404
     except Exception as e:
-        logger.error(f"Error redirecting URL: {str(e)}", exc_info=True)
-        return 'Error redirecting URL', 500
+        logger.error(f"Redirect error: {str(e)}")
+        return 'Error redirecting', 500
 
 @shortener.route('/api/check-content', methods=['POST'])
 def check_content():
@@ -83,5 +105,26 @@ def check_content():
     if not url:
         return jsonify({'error': 'URL is required', 'is_safe': False}), 400
 
-    is_safe = content_filter.is_content_safe(url, custom_path)
-    return jsonify({'is_safe': is_safe}) 
+    is_safe, reason = content_filter.is_content_safe(url, custom_path)
+    return jsonify({'is_safe': is_safe, 'reason': reason})
+
+@shortener.route('/api/preview/<path>')
+def url_preview(path):
+    long_url = get_long_url(path)
+    if long_url:
+        return jsonify({
+            'long_url': long_url,
+            'safe': content_filter.is_content_safe(long_url)
+        })
+    return jsonify({'error': 'Not found'}), 404
+
+@lru_cache(maxsize=1024)
+def get_long_url(path):
+    """Retrieve long URL from storage with caching"""
+    try:
+        # Example implementation - replace with your actual data source access
+        from services.shortener_service import get_long_url as service_get_long_url
+        return service_get_long_url(path)
+    except Exception as e:
+        logger.error(f"Error retrieving URL for path {path}: {str(e)}")
+        return None 

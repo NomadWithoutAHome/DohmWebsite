@@ -209,20 +209,22 @@
         100% { box-shadow: 0 0 15px #ff4444; }
     }
 
+    .error-modal-gif {
+        width: 200px;
+        height: 200px;
+        margin: 1rem auto;
+        border: 2px solid #ff4444;
+        border-radius: 5px;
+        object-fit: cover;
+        display: block;
+    }
+
     .error-modal-title {
         color: #ff4444;
         font-family: 'VT323', monospace;
         font-size: 2rem;
         margin-bottom: 1rem;
         text-shadow: 0 0 10px #ff4444;
-    }
-
-    .error-modal-gif {
-        width: 100%;
-        max-width: 300px;
-        margin: 1rem 0;
-        border: 2px solid #ff4444;
-        border-radius: 5px;
     }
 
     .error-modal-close {
@@ -368,7 +370,6 @@
                     </label>
                     <div id="expiry-input" class="option-input">
                         <select id="expires-in-days" class="expiry-select">
-                            <option value="">Never expires</option>
                             <option value="1">1 day</option>
                             <option value="7">7 days</option>
                             <option value="30">30 days</option>
@@ -438,8 +439,12 @@
         }
     });
 
-    function showInappropriateContentModal() {
+    function showInappropriateContentModal(reason = '') {
         const modal = document.getElementById('inappropriate-content-modal');
+        const message = modal.querySelector('p');
+        message.textContent = reason ? 
+            `This content is not allowed because ${reason}.` : 
+            'This content is not allowed!';
         modal.style.display = 'flex';
     }
 
@@ -492,6 +497,9 @@
             });
             
             const data = await response.json();
+            if (!data.is_safe) {
+                showInappropriateContentModal(data.reason);
+            }
             return data.is_safe;
         } catch (error) {
             console.error('Error checking content safety:', error);
@@ -522,7 +530,6 @@
             const isSafe = await checkContentSafety(longUrl, customPath);
             
             if (!isSafe) {
-                showInappropriateContentModal();
                 return;
             }
 

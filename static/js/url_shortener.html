@@ -1,0 +1,14 @@
+// Add real-time URL validation
+document.getElementById('long-url').addEventListener('input', function(e) {
+    const url = e.target.value;
+    const isValid = /^(https?):\/\/[^\s/$.?#].[^\s]*$/.test(url);
+    e.target.classList.toggle('invalid', !isValid);
+});
+
+// Add remaining requests counter update
+function updateRemainingRequests(remaining) {
+    const element = document.getElementById('remaining-requests');
+    element.textContent = `Remaining requests: ${remaining}`;
+    element.classList.add('pulse');
+    setTimeout(() => element.classList.remove('pulse'), 1000);
+} 

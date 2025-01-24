@@ -27,15 +27,22 @@ def notify_indexnow():
     }
     
     try:
+        logger.info(f"Sending IndexNow request with payload: {json.dumps(payload, indent=2)}")
         response = requests.post(
             'https://api.indexnow.org/IndexNow',
             headers=headers,
             json=payload
         )
-        logger.info(f"IndexNow notification response: {response.status_code}")
-        return response.status_code == 200
+        logger.info(f"IndexNow response status: {response.status_code}")
+        logger.info(f"IndexNow response content: {response.text}")
+        
+        if response.status_code != 200:
+            logger.error(f"IndexNow request failed with status {response.status_code}: {response.text}")
+            return False
+            
+        return True
     except Exception as e:
-        logger.error(f"Failed to notify IndexNow: {str(e)}")
+        logger.error(f"Failed to notify IndexNow: {str(e)}", exc_info=True)
         return False
 
 @pages.route('/')
