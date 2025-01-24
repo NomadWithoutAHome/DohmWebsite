@@ -1,25 +1,84 @@
-from flask import Blueprint, request, jsonify, send_from_directory, render_template
+from flask import Blueprint, request, jsonify, redirect, render_template
 from services.content_filter_service import ContentFilterService
 from services.rate_limiter_service import RateLimiter
 from utils.logging_config import app_logger as logger
 import os
-from werkzeug.utils import secure_filename
 import uuid
+import requests
+from datetime import datetime, timedelta
 
 image_routes = Blueprint('image_routes', __name__)
 content_filter = ContentFilterService()
 rate_limiter = RateLimiter()
 
 # Configure upload settings
-UPLOAD_FOLDER = 'uploads/images'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+
+# Vercel Blob Storage configuration
+BLOB_API_URL = "https://blob.vercel-storage.com"
+BLOB_READ_WRITE_TOKEN = os.getenv('BLOB_READ_WRITE_TOKEN')
+BLOB_STORE_ID = os.getenv('BLOB_STORE_ID', 'store_k15sVDOi4kFKp93Y')  # Fallback to your store ID
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def get_file_extension(filename):
     return filename.rsplit('.', 1)[1].lower() if '.' in filename else ''
+
+def upload_to_vercel_blob(file_data, filename, content_type):
+    """Upload file to Vercel Blob Storage"""
+    try:
+        if not BLOB_READ_WRITE_TOKEN:
+            raise ValueError("BLOB_READ_WRITE_TOKEN environment variable is not set")
+
+        # Get upload URL from Vercel Blob
+        payload = {
+            "pathname": filename,
+            "contentType": content_type
+        }
+        headers = {
+            "Authorization": f"Bearer {BLOB_READ_WRITE_TOKEN}",
+            "x-store-id": BLOB_STORE_ID
+        }
+        
+        logger.info(f"Requesting upload URL for {filename} from Vercel Blob Storage")
+        
+        # Get upload URL
+        response = requests.post(
+            f"{BLOB_API_URL}/upload",
+            json=payload,
+            headers=headers
+        )
+        response.raise_for_status()
+        upload_info = response.json()
+        
+        # Upload file to the provided URL
+        upload_url = upload_info.get('uploadUrl')
+        if not upload_url:
+            raise ValueError("No upload URL provided by Vercel Blob API")
+            
+        logger.info(f"Uploading file {filename} to Vercel Blob Storage")
+        
+        # Upload the file
+        files = {'file': (filename, file_data, content_type)}
+        upload_response = requests.post(upload_url, files=files)
+        upload_response.raise_for_status()
+        
+        # Get and validate the URL
+        file_url = upload_info.get('url')
+        if not file_url:
+            raise ValueError("No file URL returned by Vercel Blob API")
+            
+        logger.info(f"Successfully uploaded {filename} to Vercel Blob Storage: {file_url}")
+        return file_url
+        
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Network error uploading to Vercel Blob: {str(e)}", exc_info=True)
+        raise ValueError("Failed to upload file to storage service")
+    except Exception as e:
+        logger.error(f"Error uploading to Vercel Blob: {str(e)}", exc_info=True)
+        raise
 
 @image_routes.route('/tools/image-uploader')
 def image_uploader_page():
@@ -64,25 +123,19 @@ async def upload_image():
         extension = get_file_extension(file.filename)
         unique_filename = f"{uuid.uuid4().hex}.{extension}"
         
-        # Ensure upload directory exists
-        os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-        
-        # Save the file
-        file_path = os.path.join(UPLOAD_FOLDER, unique_filename)
-        file.save(file_path)
+        # Upload to Vercel Blob Storage
+        file_url = upload_to_vercel_blob(
+            file.read(),
+            unique_filename,
+            file.content_type
+        )
         
         # Get remaining requests
         remaining = rate_limiter.get_remaining_requests(client_ip)
         
-        # Return the URL and other metadata
-        base_url = request.host_url.rstrip('/')
-        image_url = f"{base_url}/i/{unique_filename}"
-        deletion_url = f"{base_url}/delete/{unique_filename}"  # Optional: implement deletion endpoint
-        
         return jsonify({
             'status': 'success',
-            'url': image_url,
-            'deletion_url': deletion_url,
+            'url': file_url,
             'remaining_requests': remaining
         })
         
