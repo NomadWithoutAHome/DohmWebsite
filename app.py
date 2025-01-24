@@ -3,6 +3,7 @@ from utils.logging_config import app_logger as logger, set_debug_level
 from routes.page_routes import pages
 from routes.crx_routes import crx
 from routes.shortener_routes import shortener
+from routes.image_routes import image_routes
 import mimetypes
 from asgiref.wsgi import WsgiToAsgi
 # from routes.converter_routes import converter
@@ -20,6 +21,7 @@ set_debug_level(debug=True)  # Set to False in production
 app.register_blueprint(pages)
 app.register_blueprint(crx)
 app.register_blueprint(shortener)
+app.register_blueprint(image_routes)
 #app.register_blueprint(converter)
 
 @app.route('/static/<path:filename>')

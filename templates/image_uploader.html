@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+
+{% block title %}Image Uploader API - DOHMBOY64{% endblock %}
+
+{% block meta_description %}Free image hosting API with ShareX support. Upload images and get direct links with our retro-themed tool.{% endblock %}
+
+{% block meta_keywords %}image uploader, image hosting, sharex uploader, image api, dohmboy64, retro image host{% endblock %}
+
+{% block og_description %}Upload images and get direct links with our retro-themed image hosting API. Includes ShareX support for easy screenshot sharing.{% endblock %}
+
+{% block styles %}
+<style>
+    .docs-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+
+    .api-section {
+        background: #1a1a1a;
+        border: 2px solid #ff8c00;
+        border-radius: 5px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 0 15px rgba(255,140,0,0.3);
+    }
+
+    .api-section:hover {
+        box-shadow: 0 0 25px rgba(255,140,0,0.5);
+    }
+
+    .section-title {
+        color: #ff8c00;
+        font-family: 'VT323', monospace;
+        font-size: 1.8rem;
+        margin-bottom: 1rem;
+        text-shadow: 0 0 10px rgba(255,140,0,0.5);
+    }
+
+    .code-block {
+        background: #2a2a2a;
+        border: 2px solid #ff8c00;
+        border-radius: 5px;
+        padding: 1rem;
+        margin: 1rem 0;
+        font-family: 'Courier New', monospace;
+        color: #fff;
+        overflow-x: auto;
+    }
+
+    .copy-button {
+        background: #2a2a2a;
+        border: 2px solid #ff8c00;
+        color: #ff8c00;
+        padding: 0.5rem 1rem;
+        border-radius: 5px;
+        cursor: pointer;
+        font-family: 'VT323', monospace;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        margin-top: 0.5rem;
+    }
+
+    .copy-button:hover {
+        background: #ff8c00;
+        color: #1a1a1a;
+        box-shadow: 0 0 15px rgba(255,140,0,0.5);
+    }
+
+    .feature-list {
+        list-style: none;
+        padding: 0;
+        margin: 1rem 0;
+    }
+
+    .feature-list li {
+        color: #fff;
+        font-family: 'VT323', monospace;
+        font-size: 1.2rem;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+    }
+
+    .feature-list li::before {
+        content: '>';
+        color: #ff8c00;
+        margin-right: 0.5rem;
+        font-weight: bold;
+    }
+
+    .download-button {
+        display: inline-block;
+        background: #2a2a2a;
+        border: 2px solid #ff8c00;
+        color: #ff8c00;
+        padding: 1rem 2rem;
+        border-radius: 5px;
+        text-decoration: none;
+        font-family: 'VT323', monospace;
+        font-size: 1.2rem;
+        margin: 1rem 0;
+        transition: all 0.3s ease;
+    }
+
+    .download-button:hover {
+        background: #ff8c00;
+        color: #1a1a1a;
+        box-shadow: 0 0 15px rgba(255,140,0,0.5);
+    }
+
+    .note {
+        color: #fbbf24;
+        font-family: 'VT323', monospace;
+        font-size: 1rem;
+        margin-top: 0.5rem;
+        font-style: italic;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="docs-container">
+    <h1 class="text-4xl mb-8 text-center text-white font-vt323">Image Uploader API</h1>
+
+    <div class="api-section">
+        <h2 class="section-title">Features</h2>
+        <ul class="feature-list">
+            <li>Direct image uploads via API</li>
+            <li>ShareX integration support</li>
+            <li>10MB file size limit</li>
+            <li>Supports PNG, JPG, JPEG, GIF, and WebP</li>
+            <li>Unique URLs for each image</li>
+            <li>Optional image deletion endpoint</li>
+        </ul>
+    </div>
+
+    <div class="api-section">
+        <h2 class="section-title">API Endpoint</h2>
+        <p class="text-white font-vt323 mb-4">Upload images using a POST request to:</p>
+        <div class="code-block">
+            <code>POST https://www.dohmboy64.com/api/upload/image</code>
+        </div>
+        <button class="copy-button" onclick="copyToClipboard('POST https://www.dohmboy64.com/api/upload/image')">Copy URL</button>
+    </div>
+
+    <div class="api-section">
+        <h2 class="section-title">ShareX Configuration</h2>
+        <p class="text-white font-vt323 mb-4">1. Download our ShareX custom uploader config:</p>
+        <a href="#" class="download-button" onclick="downloadShareXConfig()">Download Config</a>
+        
+        <p class="text-white font-vt323 mt-4 mb-2">2. Import the configuration in ShareX:</p>
+        <ul class="feature-list">
+            <li>Open ShareX</li>
+            <li>Go to Destinations > Custom uploader settings</li>
+            <li>Click Import > From file</li>
+            <li>Select the downloaded config file</li>
+            <li>Set as default image uploader</li>
+        </ul>
+    </div>
+
+    <div class="api-section">
+        <h2 class="section-title">Manual Configuration</h2>
+        <p class="text-white font-vt323 mb-4">If you prefer to configure ShareX manually:</p>
+        <div class="code-block">
+{
+    "Version": "15.0.0",
+    "Name": "DOHMBOY64 Image Uploader",
+    "DestinationType": "ImageUploader",
+    "RequestMethod": "POST",
+    "RequestURL": "https://www.dohmboy64.com/api/upload/image",
+    "Body": "MultipartFormData",
+    "FileFormName": "image",
+    "URL": "$json:url$"
+}</div>
+        <button class="copy-button" onclick="copyToClipboard(document.querySelector('.code-block').textContent)">Copy Config</button>
+    </div>
+
+    <div class="api-section">
+        <h2 class="section-title">Rate Limits</h2>
+        <p class="text-white font-vt323">To prevent abuse, the following limits apply:</p>
+        <ul class="feature-list">
+            <li>Maximum file size: 10MB</li>
+            <li>Rate limit: 60 uploads per hour</li>
+            <li>Allowed file types: PNG, JPG, JPEG, GIF, WebP</li>
+        </ul>
+        <p class="note">Note: Rate limits are based on your IP address</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function copyToClipboard(text) {
+    try {
+        await navigator.clipboard.writeText(text);
+        const button = event.target;
+        const originalText = button.textContent;
+        button.textContent = 'Copied!';
+        setTimeout(() => {
+            button.textContent = originalText;
+        }, 2000);
+    } catch (error) {
+        console.error('Failed to copy:', error);
+    }
+}
+
+function downloadShareXConfig() {
+    const config = {
+        "Version": "15.0.0",
+        "Name": "DOHMBOY64 Image Uploader",
+        "DestinationType": "ImageUploader",
+        "RequestMethod": "POST",
+        "RequestURL": "https://www.dohmboy64.com/api/upload/image",
+        "Body": "MultipartFormData",
+        "FileFormName": "image",
+        "URL": "$json:url$"
+    };
+
+    const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'dohmboy64-sharex.sxcu';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+</script>
+{% endblock %} 
