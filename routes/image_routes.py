@@ -2,9 +2,9 @@ from flask import Blueprint, request, jsonify, redirect, render_template, send_f
 from services.content_filter_service import ContentFilterService
 from services.rate_limiter_service import RateLimiter
 from utils.logging_config import app_logger as logger
+from vercel_blob import VercelBlob
 import os
 import uuid
-import requests
 from datetime import datetime, timedelta
 
 image_routes = Blueprint('image_routes', __name__)
@@ -16,9 +16,10 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 
 # Vercel Blob Storage configuration
-BLOB_API_URL = "https://api.vercel.com"
 BLOB_READ_WRITE_TOKEN = os.getenv('BLOB_READ_WRITE_TOKEN', 'vercel_blob_rw_k15sVDOi4kFKp93Y_8LGewIV8N710hke0w2iVjug87VOv5r')
-BLOB_STORE_ID = os.getenv('BLOB_STORE_ID', 'store_k15sVDOi4kFKp93Y')
+
+# Initialize Vercel Blob client
+blob_client = VercelBlob(BLOB_READ_WRITE_TOKEN)
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -31,43 +32,23 @@ def upload_to_vercel_blob(file_data, filename, content_type):
     try:
         if not BLOB_READ_WRITE_TOKEN:
             raise ValueError("BLOB_READ_WRITE_TOKEN environment variable is not set")
-
-        headers = {
-            "Authorization": f"Bearer {BLOB_READ_WRITE_TOKEN}",
-            "Content-Type": content_type,
-            "x-store-id": BLOB_STORE_ID
-        }
         
         logger.info(f"Uploading file {filename} to Vercel Blob Storage")
         
-        # Upload directly to Vercel Blob API
-        response = requests.post(
-            f"{BLOB_API_URL}/v1/blobs",
-            headers=headers,
-            files={
-                'file': (filename, file_data, content_type)
-            }
+        # Upload file using the vercel_blob client
+        result = blob_client.upload(
+            file=file_data,
+            filename=filename,
+            content_type=content_type,
+            access='public'
         )
         
-        logger.info(f"Upload response status: {response.status_code}")
-        logger.info(f"Upload response: {response.text}")
+        logger.info(f"Successfully uploaded {filename} to Vercel Blob Storage: {result.url}")
+        return result.url
         
-        response.raise_for_status()
-        result = response.json()
-        
-        # Get and validate the URL
-        if 'url' not in result:
-            raise ValueError("No URL in response")
-            
-        logger.info(f"Successfully uploaded {filename} to Vercel Blob Storage: {result['url']}")
-        return result['url']
-        
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Network error uploading to Vercel Blob: {str(e)}", exc_info=True)
-        raise ValueError("Failed to upload file to storage service")
     except Exception as e:
         logger.error(f"Error uploading to Vercel Blob: {str(e)}", exc_info=True)
-        raise
+        raise ValueError("Failed to upload file to storage service")
 
 @image_routes.route('/tools/image-uploader')
 def image_uploader_page():
