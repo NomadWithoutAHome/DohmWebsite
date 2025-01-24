@@ -16,7 +16,7 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 
 # Vercel Blob Storage configuration
-BLOB_API_URL = "https://blob.vercel-storage.com"
+BLOB_API_URL = "https://api.vercel.com"
 BLOB_READ_WRITE_TOKEN = os.getenv('BLOB_READ_WRITE_TOKEN', 'vercel_blob_rw_k15sVDOi4kFKp93Y_8LGewIV8N710hke0w2iVjug87VOv5r')
 BLOB_STORE_ID = os.getenv('BLOB_STORE_ID', 'store_k15sVDOi4kFKp93Y')
 
@@ -32,57 +32,35 @@ def upload_to_vercel_blob(file_data, filename, content_type):
         if not BLOB_READ_WRITE_TOKEN:
             raise ValueError("BLOB_READ_WRITE_TOKEN environment variable is not set")
 
-        # First, get the upload URL
         headers = {
             "Authorization": f"Bearer {BLOB_READ_WRITE_TOKEN}",
-            "Content-Type": "application/json"
+            "Content-Type": content_type,
+            "x-store-id": BLOB_STORE_ID
         }
         
-        logger.info(f"Requesting upload URL for {filename}")
+        logger.info(f"Uploading file {filename} to Vercel Blob Storage")
         
-        # Request upload URL with access configuration
-        payload = {
-            "pathname": filename,
-            "contentType": content_type,
-            "access": "public"
-        }
-        
+        # Upload directly to Vercel Blob API
         response = requests.post(
-            f"{BLOB_API_URL}/upload",
-            json=payload,
-            headers=headers
-        )
-        
-        logger.info(f"Upload URL request response status: {response.status_code}")
-        logger.info(f"Upload URL request response: {response.text}")
-        
-        response.raise_for_status()
-        upload_data = response.json()
-        
-        if 'uploadUrl' not in upload_data:
-            raise ValueError("No upload URL in response")
-            
-        # Now upload the file to the provided URL
-        logger.info(f"Uploading file to {upload_data['uploadUrl']}")
-        
-        upload_response = requests.put(
-            upload_data['uploadUrl'],
-            data=file_data,
-            headers={
-                "Content-Type": content_type
+            f"{BLOB_API_URL}/v1/blobs",
+            headers=headers,
+            files={
+                'file': (filename, file_data, content_type)
             }
         )
         
-        logger.info(f"File upload response status: {upload_response.status_code}")
+        logger.info(f"Upload response status: {response.status_code}")
+        logger.info(f"Upload response: {response.text}")
         
-        upload_response.raise_for_status()
+        response.raise_for_status()
+        result = response.json()
         
-        # Return the URL where the file can be accessed
-        if 'url' not in upload_data:
+        # Get and validate the URL
+        if 'url' not in result:
             raise ValueError("No URL in response")
             
-        logger.info(f"Successfully uploaded {filename} to Vercel Blob Storage: {upload_data['url']}")
-        return upload_data['url']
+        logger.info(f"Successfully uploaded {filename} to Vercel Blob Storage: {result['url']}")
+        return result['url']
         
     except requests.exceptions.RequestException as e:
         logger.error(f"Network error uploading to Vercel Blob: {str(e)}", exc_info=True)
@@ -152,26 +130,4 @@ async def upload_image():
         
     except Exception as e:
         logger.error(f"Error uploading image: {str(e)}", exc_info=True)
-        return jsonify({'error': 'Internal server error'}), 500
-
-@image_routes.route('/i/<filename>')
-def serve_image(filename):
-    """Serve uploaded images."""
-    try:
-        return send_from_directory(UPLOAD_FOLDER, filename)
-    except Exception as e:
-        logger.error(f"Error serving image: {str(e)}")
-        return 'Image not found', 404
-
-@image_routes.route('/delete/<filename>')
-def delete_image(filename):
-    """Delete an uploaded image."""
-    try:
-        file_path = os.path.join(UPLOAD_FOLDER, filename)
-        if os.path.exists(file_path):
-            os.remove(file_path)
-            return jsonify({'status': 'success', 'message': 'Image deleted'})
-        return jsonify({'error': 'Image not found'}), 404
-    except Exception as e:
-        logger.error(f"Error deleting image: {str(e)}")
         return jsonify({'error': 'Internal server error'}), 500 
