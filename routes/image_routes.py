@@ -16,10 +16,9 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 
 # Vercel Blob Storage configuration
-BLOB_BASE_URL = "https://k15svdoi4kfkp93y.public.blob.vercel-storage.com"
-BLOB_API_URL = "https://upload.vercel.com"
+BLOB_API_URL = "https://blob.vercel-storage.com"
 BLOB_READ_WRITE_TOKEN = os.getenv('BLOB_READ_WRITE_TOKEN')
-BLOB_STORE_ID = os.getenv('BLOB_STORE_ID', 'store_k15sVDOi4kFKp93Y')
+BLOB_STORE_ID = os.getenv('BLOB_STORE_ID', 'store_k15sVDOi4kFKp93Y')  # Fallback to your store ID
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -33,40 +32,44 @@ def upload_to_vercel_blob(file_data, filename, content_type):
         if not BLOB_READ_WRITE_TOKEN:
             raise ValueError("BLOB_READ_WRITE_TOKEN environment variable is not set")
 
-        logger.info(f"Uploading {filename} to Vercel Blob Storage")
-        
-        # First get the upload URL
+        # Get upload URL from Vercel Blob
+        payload = {
+            "pathname": filename,
+            "contentType": content_type
+        }
         headers = {
             "Authorization": f"Bearer {BLOB_READ_WRITE_TOKEN}",
-            "x-store-id": BLOB_STORE_ID,
-            "x-content-type": content_type
+            "x-store-id": BLOB_STORE_ID
         }
         
-        # Get the upload URL
+        logger.info(f"Requesting upload URL for {filename} from Vercel Blob Storage")
+        
+        # Get upload URL
         response = requests.post(
             f"{BLOB_API_URL}/upload",
+            json=payload,
             headers=headers
         )
         response.raise_for_status()
-        upload_data = response.json()
+        upload_info = response.json()
         
-        # Upload the file to the provided URL
-        upload_url = upload_data.get('uploadUrl')
+        # Upload file to the provided URL
+        upload_url = upload_info.get('uploadUrl')
         if not upload_url:
-            raise ValueError("No upload URL provided by Vercel Blob")
+            raise ValueError("No upload URL provided by Vercel Blob API")
             
+        logger.info(f"Uploading file {filename} to Vercel Blob Storage")
+        
         # Upload the file
-        upload_response = requests.put(
-            upload_url,
-            data=file_data,
-            headers={
-                "Content-Type": content_type
-            }
-        )
+        files = {'file': (filename, file_data, content_type)}
+        upload_response = requests.post(upload_url, files=files)
         upload_response.raise_for_status()
         
-        # Construct the final URL
-        file_url = f"{BLOB_BASE_URL}/{filename}"
+        # Get and validate the URL
+        file_url = upload_info.get('url')
+        if not file_url:
+            raise ValueError("No file URL returned by Vercel Blob API")
+            
         logger.info(f"Successfully uploaded {filename} to Vercel Blob Storage: {file_url}")
         return file_url
         
