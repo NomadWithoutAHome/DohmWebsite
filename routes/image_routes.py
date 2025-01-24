@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, redirect, render_template
+from flask import Blueprint, request, jsonify, redirect, render_template, send_from_directory
 from services.content_filter_service import ContentFilterService
 from services.rate_limiter_service import RateLimiter
 from utils.logging_config import app_logger as logger
@@ -16,9 +16,9 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 
 # Vercel Blob Storage configuration
-BLOB_API_URL = "https://api.vercel.com/v1/blobs"
-BLOB_READ_WRITE_TOKEN = os.getenv('BLOB_READ_WRITE_TOKEN')
-BLOB_STORE_ID = os.getenv('BLOB_STORE_ID', 'store_k15sVDOi4kFKp93Y')  # Fallback to your store ID
+BLOB_API_URL = "https://blob.vercel-storage.com"
+BLOB_READ_WRITE_TOKEN = os.getenv('BLOB_READ_WRITE_TOKEN', 'vercel_blob_rw_k15sVDOi4kFKp93Y_8LGewIV8N710hke0w2iVjug87VOv5r')
+BLOB_STORE_ID = os.getenv('BLOB_STORE_ID', 'store_k15sVDOi4kFKp93Y')
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -32,35 +32,57 @@ def upload_to_vercel_blob(file_data, filename, content_type):
         if not BLOB_READ_WRITE_TOKEN:
             raise ValueError("BLOB_READ_WRITE_TOKEN environment variable is not set")
 
+        # First, get the upload URL
         headers = {
             "Authorization": f"Bearer {BLOB_READ_WRITE_TOKEN}",
-            "x-store-id": BLOB_STORE_ID
+            "Content-Type": "application/json"
         }
         
-        logger.info(f"Uploading file {filename} to Vercel Blob Storage")
+        logger.info(f"Requesting upload URL for {filename}")
         
-        # Create multipart form data
-        files = {
-            'file': (filename, file_data, content_type)
+        # Request upload URL with access configuration
+        payload = {
+            "pathname": filename,
+            "contentType": content_type,
+            "access": "public"
         }
         
-        # Upload directly to Vercel Blob API
         response = requests.post(
-            BLOB_API_URL,
-            headers=headers,
-            files=files
+            f"{BLOB_API_URL}/upload",
+            json=payload,
+            headers=headers
         )
         
-        response.raise_for_status()
-        result = response.json()
+        logger.info(f"Upload URL request response status: {response.status_code}")
+        logger.info(f"Upload URL request response: {response.text}")
         
-        # Get and validate the URL
-        file_url = result.get('url')
-        if not file_url:
-            raise ValueError("No file URL returned by Vercel Blob API")
+        response.raise_for_status()
+        upload_data = response.json()
+        
+        if 'uploadUrl' not in upload_data:
+            raise ValueError("No upload URL in response")
             
-        logger.info(f"Successfully uploaded {filename} to Vercel Blob Storage: {file_url}")
-        return file_url
+        # Now upload the file to the provided URL
+        logger.info(f"Uploading file to {upload_data['uploadUrl']}")
+        
+        upload_response = requests.put(
+            upload_data['uploadUrl'],
+            data=file_data,
+            headers={
+                "Content-Type": content_type
+            }
+        )
+        
+        logger.info(f"File upload response status: {upload_response.status_code}")
+        
+        upload_response.raise_for_status()
+        
+        # Return the URL where the file can be accessed
+        if 'url' not in upload_data:
+            raise ValueError("No URL in response")
+            
+        logger.info(f"Successfully uploaded {filename} to Vercel Blob Storage: {upload_data['url']}")
+        return upload_data['url']
         
     except requests.exceptions.RequestException as e:
         logger.error(f"Network error uploading to Vercel Blob: {str(e)}", exc_info=True)
