@@ -136,6 +136,26 @@
                     <img src="{{ url_for('static', filename='assets/logo.png') }}" alt="Dohmbdy64 Logo" class="w-full h-auto">
                 </a>
                 
+                <div class="relative inline-block text-left group">
+                    <button class="text-white font-vt323 text-xl hover:text-orange-500 transition-colors duration-300">Tools</button>
+                    <div class="absolute hidden group-hover:block mt-2 w-48 rounded-md shadow-lg bg-black ring-1 ring-black ring-opacity-5 z-50">
+                        <div class="py-1" role="menu" aria-orientation="vertical">
+                            <a href="{{ url_for('crx_routes.crx_downloader_page') }}" class="block px-4 py-2 text-sm text-white hover:bg-orange-500 hover:text-black font-vt323" role="menuitem">Chrome Extension Downloader</a>
+                            <a href="{{ url_for('shortener_routes.url_shortener_page') }}" class="block px-4 py-2 text-sm text-white hover:bg-orange-500 hover:text-black font-vt323" role="menuitem">URL Shortener</a>
+                            <a href="{{ url_for('image_routes.image_uploader_page') }}" class="block px-4 py-2 text-sm text-white hover:bg-orange-500 hover:text-black font-vt323" role="menuitem">Image Uploader</a>
+                            <a href="#" class="block px-4 py-2 text-sm text-white hover:bg-orange-500 hover:text-black font-vt323" role="menuitem">More Tools Coming Soon...</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="relative inline-block text-left group">
+                    <button class="text-white font-vt323 text-xl hover:text-orange-500 transition-colors duration-300">Code</button>
+                    <div class="absolute hidden group-hover:block mt-2 w-48 rounded-md shadow-lg bg-black ring-1 ring-black ring-opacity-5 z-50">
+                        <div class="py-1" role="menu" aria-orientation="vertical">
+                            <a href="https://github.com/NomadWithoutAHome/HolyPotatoEditor" target="_blank" class="block px-4 py-2 text-sm text-white hover:bg-orange-500 hover:text-black font-vt323" role="menuitem">Holy Potatoes Save Editor</a>
+                        </div>
+                    </div>
+                </div>
+                
                 {% block content %}{% endblock %}
 
                 <div class="mt-16">
