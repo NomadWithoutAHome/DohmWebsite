@@ -20,8 +20,8 @@
         background: #1a1a1a;
         border: 2px solid #ff8c00;
         border-radius: 5px;
-        padding: 1.5rem;
-        margin-bottom: 2rem;
+        padding: 1.2rem;
+        margin-bottom: 1.5rem;
         box-shadow: 0 0 15px rgba(255,140,0,0.3);
     }
 
@@ -70,16 +70,20 @@
     .feature-list {
         list-style: none;
         padding: 0;
-        margin: 1rem 0;
+        margin: 0.5rem 0;
     }
 
     .feature-list li {
         color: #fff;
         font-family: 'VT323', monospace;
         font-size: 1.2rem;
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.3rem;
         display: flex;
         align-items: center;
+    }
+
+    .feature-list li:last-child {
+        margin-bottom: 0;
     }
 
     .feature-list li::before {
@@ -140,7 +144,7 @@
         <div class="code-block">
             <code>POST https://www.dohmboy64.com/api/upload/image</code>
         </div>
-        <button class="copy-button" onclick="copyToClipboard('POST https://www.dohmboy64.com/api/upload/image')">Copy URL</button>
+        <button class="copy-button" onclick="copyToClipboard('POST https://www.dohmboy64.com/api/upload/image', event)">Copy URL</button>
     </div>
 
     <div class="api-section">
@@ -177,7 +181,7 @@
     "ParseResponse": true,
     "URL": "{json:url}"
 }</div>
-        <button class="copy-button" onclick="copyToClipboard(document.querySelector('.code-block').textContent)">Copy Config</button>
+        <button class="copy-button" onclick="copyConfig()">Copy Config</button>
     </div>
 
     <div class="api-section">
@@ -197,7 +201,7 @@
 
 {% block scripts %}
 <script>
-async function copyToClipboard(text) {
+async function copyToClipboard(text, event) {
     try {
         await navigator.clipboard.writeText(text);
         const button = event.target;
@@ -209,6 +213,25 @@ async function copyToClipboard(text) {
     } catch (error) {
         console.error('Failed to copy:', error);
     }
+}
+
+function copyConfig() {
+    const config = {
+        "Version": "15.0.0",
+        "Name": "DOHMBOY64 Image Uploader",
+        "DestinationType": "ImageUploader",
+        "RequestMethod": "POST",
+        "RequestURL": "https://www.dohmboy64.com/api/upload/image",
+        "Body": "MultipartFormData",
+        "FileFormName": "image",
+        "Headers": {
+            "accept": "application/json"
+        },
+        "ResponseType": "JSON",
+        "ParseResponse": true,
+        "URL": "{json:url}"
+    };
+    copyToClipboard(JSON.stringify(config, null, 2), event);
 }
 
 function downloadShareXConfig() {
