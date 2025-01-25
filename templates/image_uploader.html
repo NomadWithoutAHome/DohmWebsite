@@ -184,11 +184,9 @@
     "Headers": {
         "accept": "application/json"
     },
-    "ResponseType": "Text",
-    "RegexList": [
-        "\"url\":\"(https?://[^\"]+)\""
-    ],
-    "URL": "$1$"
+    "ResponseType": "JSON",
+    "ParseResponse": true,
+    "URL": "$json:url$"
 }</div>
         <button class="copy-button" onclick="copyToClipboard(document.querySelector('.code-block').textContent)">Copy Config</button>
     </div>
@@ -234,11 +232,9 @@ function downloadShareXConfig() {
         "Headers": {
             "accept": "application/json"
         },
-        "ResponseType": "Text",
-        "RegexList": [
-            "\"url\":\"(https?://[^\"]+)\""
-        ],
-        "URL": "$1$"
+        "ResponseType": "JSON",
+        "ParseResponse": true,
+        "URL": "$json:url$"
     };
 
     const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
