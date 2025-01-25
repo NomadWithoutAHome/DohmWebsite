@@ -181,7 +181,8 @@
     "RequestURL": "https://www.dohmboy64.com/api/upload/image",
     "Body": "MultipartFormData",
     "FileFormName": "image",
-    "URL": "$json:url$"
+    "URL": "$json:url$",
+    "ErrorMessage": "$json:error$"
 }</div>
         <button class="copy-button" onclick="copyToClipboard(document.querySelector('.code-block').textContent)">Copy Config</button>
     </div>
@@ -224,7 +225,8 @@ function downloadShareXConfig() {
         "RequestURL": "https://www.dohmboy64.com/api/upload/image",
         "Body": "MultipartFormData",
         "FileFormName": "image",
-        "URL": "$json:url$"
+        "URL": "$json:url$",
+        "ErrorMessage": "$json:error$"
     };
 
     const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
