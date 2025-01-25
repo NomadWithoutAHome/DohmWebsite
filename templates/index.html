@@ -122,10 +122,17 @@
 
 <div class="flex flex-col md:flex-row gap-6 mt-8">
     <a href="{{ url_for('pages.play') }}" class="retro-button">START GAME</a>
-    <button class="retro-button">CODE</button>
     <div class="tools-dropdown">
-        <button class="retro-button" onclick="toggleToolsDropdown(this)">TOOLS</button>
-        <div class="dropdown-content">
+        <button class="retro-button" onclick="toggleDropdown(this, 'code-dropdown')">CODE</button>
+        <div class="dropdown-content" id="code-dropdown">
+            <a href="https://github.com/dohmboy64" class="dropdown-item">GitHub</a>
+            <a href="https://github.com/dohmboy64/DohmWebsite" class="dropdown-item">Website Source</a>
+            <a href="#" class="dropdown-item">More Projects Soon...</a>
+        </div>
+    </div>
+    <div class="tools-dropdown">
+        <button class="retro-button" onclick="toggleDropdown(this, 'tools-dropdown')">TOOLS</button>
+        <div class="dropdown-content" id="tools-dropdown">
             <a href="{{ url_for('pages.chrome_downloader') }}" class="dropdown-item">Chrome Extension Downloader</a>
             <a href="{{ url_for('shortener.url_shortener_page') }}" class="dropdown-item">URL Shortener</a>
             <a href="{{ url_for('image_routes.image_uploader_page') }}" class="dropdown-item">Image Uploader</a>
@@ -139,10 +146,18 @@
 <script src="{{ url_for('static', filename='js/typewriter.js') }}"></script>
 <script src="{{ url_for('static', filename='js/index.js') }}"></script>
 <script>
-    function toggleToolsDropdown(button) {
+    function toggleDropdown(button, dropdownId) {
         const dropdown = button.nextElementSibling;
         const isOpen = dropdown.classList.toggle('show');
         button.classList.toggle('pressed', isOpen);
+
+        // Close all other dropdowns
+        document.querySelectorAll('.dropdown-content').forEach(content => {
+            if (content.id !== dropdownId && content.classList.contains('show')) {
+                content.classList.remove('show');
+                content.previousElementSibling.classList.remove('pressed');
+            }
+        });
 
         // Close dropdown when clicking outside
         document.addEventListener('click', function closeDropdown(e) {
