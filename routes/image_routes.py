@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify, redirect, render_template, send_f
 from services.content_filter_service import ContentFilterService
 from services.rate_limiter_service import RateLimiter
 from utils.logging_config import app_logger as logger
-from vercel_blob import VercelBlob
+import vercel_blob
 import os
 import uuid
 from datetime import datetime, timedelta
@@ -18,9 +18,6 @@ MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 # Vercel Blob Storage configuration
 BLOB_READ_WRITE_TOKEN = os.getenv('BLOB_READ_WRITE_TOKEN', 'vercel_blob_rw_k15sVDOi4kFKp93Y_8LGewIV8N710hke0w2iVjug87VOv5r')
 
-# Initialize Vercel Blob client
-blob_client = VercelBlob(BLOB_READ_WRITE_TOKEN)
-
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
@@ -35,16 +32,15 @@ def upload_to_vercel_blob(file_data, filename, content_type):
         
         logger.info(f"Uploading file {filename} to Vercel Blob Storage")
         
-        # Upload file using the vercel_blob client
-        result = blob_client.upload(
-            file=file_data,
-            filename=filename,
-            content_type=content_type,
-            access='public'
-        )
+        # Upload file using vercel_blob
+        result = vercel_blob.put(filename, file_data, {
+            "access": "public",
+            "addRandomSuffix": "false",
+            "contentType": content_type
+        })
         
-        logger.info(f"Successfully uploaded {filename} to Vercel Blob Storage: {result.url}")
-        return result.url
+        logger.info(f"Successfully uploaded {filename} to Vercel Blob Storage: {result['url']}")
+        return result['url']
         
     except Exception as e:
         logger.error(f"Error uploading to Vercel Blob: {str(e)}", exc_info=True)
