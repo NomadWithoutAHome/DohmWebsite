@@ -186,7 +186,7 @@
     },
     "ResponseType": "JSON",
     "ParseResponse": true,
-    "URL": "$json:$['url']$"
+    "URL": "$regex:(\"url\":\")(.*?)(\")$"
 }</div>
         <button class="copy-button" onclick="copyToClipboard(document.querySelector('.code-block').textContent)">Copy Config</button>
     </div>
