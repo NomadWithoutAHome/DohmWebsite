@@ -36,7 +36,7 @@ def get_file_extension(filename):
 
 def get_custom_url(filename):
     """Generate a custom URL for the image using our domain"""
-    return f"/i/{filename}"
+    return f"https://www.imghost.dohmboy64.com/i/{filename}"
 
 def upload_to_vercel_blob(file_data, filename, content_type):
     """Upload file to Vercel Blob Storage"""
@@ -164,7 +164,7 @@ async def upload_image():
         remaining = rate_limiter.get_remaining_requests(client_ip)
         
         # Construct the full URL
-        full_url = f"https://www.dohmboy64.com{relative_url}"
+        full_url = f"https://www.imghost.dohmboy64.com{relative_url}"
         
         return jsonify({
             'status': 'success',
