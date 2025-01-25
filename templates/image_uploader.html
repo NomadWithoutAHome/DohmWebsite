@@ -124,16 +124,6 @@
     <h1 class="text-4xl mb-8 text-center text-white font-vt323">Image Uploader API</h1>
 
     <div class="api-section">
-        <h2 class="section-title">Test Upload</h2>
-        <form action="/api/upload/image" method="POST" enctype="multipart/form-data" class="flex flex-col gap-4">
-            <input type="file" name="image" accept="image/png,image/jpeg,image/gif,image/webp" required 
-                   class="text-white font-vt323 bg-[#2a2a2a] border-2 border-[#ff8c00] rounded p-2">
-            <button type="submit" class="copy-button w-full">Upload Image</button>
-        </form>
-        <div id="uploadResult" class="mt-4 text-white font-vt323"></div>
-    </div>
-
-    <div class="api-section">
         <h2 class="section-title">Features</h2>
         <ul class="feature-list">
             <li>Direct image uploads via API</li>
@@ -234,7 +224,7 @@ function downloadShareXConfig() {
         },
         "ResponseType": "JSON",
         "ParseResponse": true,
-        "URL": "$json:url$"
+        "URL": "{json:url}"
     };
 
     const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
@@ -247,46 +237,5 @@ function downloadShareXConfig() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 }
-
-// Add form submission handler
-document.addEventListener('DOMContentLoaded', function() {
-    const form = document.querySelector('form');
-    const resultDiv = document.getElementById('uploadResult');
-
-    form.addEventListener('submit', async function(e) {
-        e.preventDefault();
-        
-        const formData = new FormData(form);
-        const submitButton = form.querySelector('button[type="submit"]');
-        const originalButtonText = submitButton.textContent;
-        
-        try {
-            submitButton.textContent = 'Uploading...';
-            submitButton.disabled = true;
-            
-            const response = await fetch('/api/upload/image', {
-                method: 'POST',
-                body: formData
-            });
-            
-            const data = await response.json();
-            
-            if (response.ok) {
-                resultDiv.innerHTML = `
-                    <div class="text-green-500">Upload successful!</div>
-                    <div class="mt-2">URL: <a href="${data.url}" target="_blank" class="text-[#ff8c00] hover:underline">${data.url}</a></div>
-                    <button onclick="copyToClipboard('${data.url}')" class="copy-button mt-2">Copy URL</button>
-                `;
-            } else {
-                resultDiv.innerHTML = `<div class="text-red-500">Error: ${data.error}</div>`;
-            }
-        } catch (error) {
-            resultDiv.innerHTML = `<div class="text-red-500">Error: ${error.message}</div>`;
-        } finally {
-            submitButton.textContent = originalButtonText;
-            submitButton.disabled = false;
-        }
-    });
-});
 </script>
 {% endblock %} 
