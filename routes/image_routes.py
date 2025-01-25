@@ -36,7 +36,7 @@ def get_file_extension(filename):
 
 def get_custom_url(filename):
     """Generate a custom URL for the image using our domain"""
-    return f"https://www.imghost.dohmboy64.com/i/{filename}"
+    return f"/i/{filename}"
 
 def upload_to_vercel_blob(file_data, filename, content_type):
     """Upload file to Vercel Blob Storage"""
