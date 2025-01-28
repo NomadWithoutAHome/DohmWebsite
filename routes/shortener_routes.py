@@ -131,4 +131,9 @@ def get_long_url(path):
         return service_get_long_url(path)
     except Exception as e:
         logger.error(f"Error retrieving URL for path {path}: {str(e)}")
-        return None 
+        return None
+
+@shortener.before_request
+def track_shortener_visit():
+    """Ensure tracking for all shortener routes"""
+    TrackingService.track_visitor(request, request.path) 

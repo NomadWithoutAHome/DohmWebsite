@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, send_from_directory, request
+from flask import Blueprint, render_template, send_from_directory, request, jsonify
 from utils.logging_config import app_logger as logger
 import os
 import requests
@@ -81,6 +81,19 @@ def trigger_indexnow():
     """Trigger IndexNow notification."""
     success = notify_indexnow()
     return {'success': success}, 200 if success else 500
+
+@pages.route('/track/outbound', methods=['POST'])
+def track_outbound():
+    """Track outbound link clicks"""
+    data = request.get_json()
+    destination = data.get('destination')
+    link_type = data.get('type')
+    
+    if not destination or not link_type:
+        return jsonify({'error': 'Missing required fields'}), 400
+        
+    TrackingService.track_outbound_click(request, destination, link_type)
+    return jsonify({'status': 'success'})
 
 @pages.before_request
 def track_page_visit():

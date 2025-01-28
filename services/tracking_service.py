@@ -7,13 +7,22 @@ from services.shortener_service import redis
 WEBHOOK_URL = "https://discord.com/api/webhooks/1333690401357299742/Fj1WLrs1r9oqq6pM3GR7U8hUA6ruwFXuxv7W4FhkIyt9MDg-pm6HC8jzXwGbUNKDiH1i"
 
 class TrackingService:
-    # Add path mapping
+    # Update path mapping to match exact routes
     PATH_NAMES = {
         '/': 'Home Page',
         '/tools/url-shortener': 'URL Shortener Tool',
         '/tools/chrome-downloader': 'Chrome Extension Downloader',
+        '/tools/image-uploader': 'Image Uploader Tool',
         '/play': 'Emulator Page',
-        '/bbs': 'BBS System'
+        '/bbs': 'BBS System',
+        '/api/shorten': 'URL Shortener API',
+        '/api/upload': 'Image Upload API',
+        '/api/images/upload': 'Image Uploader API',
+        'github': 'GitHub Profile',
+        'linkedin': 'LinkedIn Profile',
+        'twitter': 'Twitter Profile',
+        'portfolio': 'Portfolio',
+        'blog': 'Blog'
     }
 
     @staticmethod
@@ -33,16 +42,29 @@ class TrackingService:
     @staticmethod
     def track_visitor(request, path):
         """Track new and returning visitors"""
+        # Add debug logging
+        logger.info(f"Tracking visit - Path: {path}, Referrer: {request.headers.get('Referer', 'Direct')}")
+        
         ip = request.headers.get('X-Forwarded-For', request.remote_addr)
         user_agent = request.headers.get('User-Agent', 'Unknown')
         referrer = request.headers.get('Referer', 'Direct')
         
-        # Determine if navigation is internal or external
-        is_internal = referrer.startswith(request.host_url) if referrer != 'Direct' else False
+        # Improved internal navigation detection with logging
+        is_internal = False
+        if referrer != 'Direct':
+            is_internal = (
+                referrer.startswith(request.host_url) or
+                referrer.startswith('/') or
+                'dohmboy64.com' in referrer or
+                request.host in referrer
+            )
+            logger.info(f"Navigation type - Internal: {is_internal}, Referrer: {referrer}")
+            
         navigation_type = "Internal Navigation" if is_internal else "External Visit"
         
-        # Get friendly path name
+        # Get friendly path name with logging
         friendly_path = TrackingService.get_friendly_path_name(path)
+        logger.info(f"Path mapping - Raw: {path}, Friendly: {friendly_path}")
         
         # Check if this is an active session
         session_key = f"session:{ip}"
@@ -146,6 +168,34 @@ class TrackingService:
                 {"name": "Creator IP", "value": ip, "inline": True},
                 {"name": "Location", "value": location, "inline": True},
                 {"name": "Original URL", "value": long_url[:1024], "inline": False}
+            ],
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        TrackingService.send_webhook(embed)
+
+    @staticmethod
+    def track_outbound_click(request, destination, link_type):
+        """Track when users click external links"""
+        ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+        referrer = request.headers.get('Referer', 'Direct')
+        
+        try:
+            geo_response = requests.get(f"http://ip-api.com/json/{ip}")
+            geo_data = geo_response.json()
+            location = f"{geo_data.get('city', 'Unknown')}, {geo_data.get('country', 'Unknown')}"
+        except:
+            location = "Unknown"
+            
+        embed = {
+            "title": "🔗 Outbound Click",
+            "color": 10181046,  # Purple
+            "fields": [
+                {"name": "Link Type", "value": link_type, "inline": True},
+                {"name": "Destination", "value": destination, "inline": True},
+                {"name": "IP Address", "value": ip, "inline": True},
+                {"name": "Location", "value": location, "inline": True},
+                {"name": "From Page", "value": referrer, "inline": True}
             ],
             "timestamp": datetime.now().isoformat()
         }
