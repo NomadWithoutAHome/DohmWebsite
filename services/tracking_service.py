@@ -63,6 +63,7 @@ class TrackingService:
         if visitor_data:
             # Returning visitor
             visitor = json.loads(visitor_data)
+            previous_path = visitor.get('current_path')  # Store previous path before updating
             
             # Only increment visit count if this is a new session
             if not is_active_session:
@@ -73,9 +74,10 @@ class TrackingService:
             visitor['last_visit'] = datetime.now().isoformat()
             visitor['paths'].append(friendly_path)
             visitor['location'] = location
+            visitor['current_path'] = path  # Update current path
             
-            # Only send webhook for page changes
-            if visitor.get('current_path') != path:
+            # Send webhook for all page changes except refreshes
+            if previous_path != path:
                 embed = {
                     "title": f"🔄 {navigation_type}",
                     "color": 3447003,  # Blue
@@ -83,7 +85,7 @@ class TrackingService:
                         {"name": "IP Address", "value": ip, "inline": True},
                         {"name": "Location", "value": location, "inline": True},
                         {"name": "Visit Count", "value": str(visitor['visit_count']), "inline": True},
-                        {"name": "Previous Page", "value": TrackingService.get_friendly_path_name(visitor.get('current_path', 'None')), "inline": True},
+                        {"name": "Previous Page", "value": TrackingService.get_friendly_path_name(previous_path or 'None'), "inline": True},
                         {"name": "Current Page", "value": friendly_path, "inline": True},
                         {"name": "Referrer", "value": referrer, "inline": True},
                         {"name": "User Agent", "value": user_agent[:100], "inline": False}
@@ -91,9 +93,6 @@ class TrackingService:
                     "timestamp": datetime.now().isoformat()
                 }
                 TrackingService.send_webhook(embed)
-            
-            visitor['current_path'] = path
-            
         else:
             # New visitor
             visitor = {
