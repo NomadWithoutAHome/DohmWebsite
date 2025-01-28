@@ -37,6 +37,10 @@ class TrackingService:
         user_agent = request.headers.get('User-Agent', 'Unknown')
         referrer = request.headers.get('Referer', 'Direct')
         
+        # Determine if navigation is internal or external
+        is_internal = referrer.startswith(request.host_url) if referrer != 'Direct' else False
+        navigation_type = "Internal Navigation" if is_internal else "External Visit"
+        
         # Get friendly path name
         friendly_path = TrackingService.get_friendly_path_name(path)
         
@@ -44,41 +48,51 @@ class TrackingService:
         visitor_key = f"visitor:{ip}"
         visitor_data = redis.get(visitor_key)
         
+        # Get or update location data
+        try:
+            geo_response = requests.get(f"http://ip-api.com/json/{ip}")
+            geo_data = geo_response.json()
+            location = f"{geo_data.get('city', 'Unknown')}, {geo_data.get('country', 'Unknown')}"
+        except:
+            location = "Unknown"
+        
         if visitor_data:
             # Returning visitor
             visitor = json.loads(visitor_data)
             visitor['visit_count'] += 1
             visitor['last_visit'] = datetime.now().isoformat()
-            visitor['paths'].append(friendly_path)  # Store friendly path name
+            visitor['paths'].append(friendly_path)
+            visitor['location'] = location  # Update location
             
-            embed = {
-                "title": "🔄 Returning Visitor",
-                "color": 3447003,  # Blue
-                "fields": [
-                    {"name": "IP Address", "value": ip, "inline": True},
-                    {"name": "Visit Count", "value": str(visitor['visit_count']), "inline": True},
-                    {"name": "Current Page", "value": friendly_path, "inline": True},  # Changed to friendly name
-                    {"name": "Referrer", "value": referrer, "inline": True},
-                    {"name": "User Agent", "value": user_agent[:100], "inline": False}
-                ],
-                "timestamp": datetime.now().isoformat()
-            }
+            # Only send webhook for page changes
+            if visitor.get('current_path') != path:
+                embed = {
+                    "title": f"🔄 {navigation_type}",
+                    "color": 3447003,  # Blue
+                    "fields": [
+                        {"name": "IP Address", "value": ip, "inline": True},
+                        {"name": "Location", "value": location, "inline": True},
+                        {"name": "Visit Count", "value": str(visitor['visit_count']), "inline": True},
+                        {"name": "Previous Page", "value": TrackingService.get_friendly_path_name(visitor.get('current_path', 'None')), "inline": True},
+                        {"name": "Current Page", "value": friendly_path, "inline": True},
+                        {"name": "Referrer", "value": referrer, "inline": True},
+                        {"name": "User Agent", "value": user_agent[:100], "inline": False}
+                    ],
+                    "timestamp": datetime.now().isoformat()
+                }
+                TrackingService.send_webhook(embed)
+            
+            visitor['current_path'] = path
+            
         else:
             # New visitor
-            # Get geolocation data
-            try:
-                geo_response = requests.get(f"http://ip-api.com/json/{ip}")
-                geo_data = geo_response.json()
-                location = f"{geo_data.get('city', 'Unknown')}, {geo_data.get('country', 'Unknown')}"
-            except:
-                location = "Unknown"
-                
             visitor = {
                 'ip': ip,
                 'first_visit': datetime.now().isoformat(),
                 'last_visit': datetime.now().isoformat(),
                 'visit_count': 1,
-                'paths': [friendly_path],  # Store friendly path name
+                'paths': [friendly_path],
+                'current_path': path,
                 'location': location
             }
             
@@ -88,16 +102,17 @@ class TrackingService:
                 "fields": [
                     {"name": "IP Address", "value": ip, "inline": True},
                     {"name": "Location", "value": location, "inline": True},
-                    {"name": "First Page", "value": friendly_path, "inline": True},  # Changed to friendly name
+                    {"name": "First Page", "value": friendly_path, "inline": True},
+                    {"name": "Navigation", "value": navigation_type, "inline": True},
                     {"name": "Referrer", "value": referrer, "inline": True},
                     {"name": "User Agent", "value": user_agent[:100], "inline": False}
                 ],
                 "timestamp": datetime.now().isoformat()
             }
+            TrackingService.send_webhook(embed)
         
         # Store visitor data in Redis (24 hour expiry)
         redis.setex(visitor_key, 86400, json.dumps(visitor))
-        TrackingService.send_webhook(embed)
 
     @staticmethod
     def track_url_creation(request, short_path, long_url):
