@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 import re
 from datetime import datetime
 from functools import lru_cache
+from services.tracking_service import TrackingService
 
 shortener = Blueprint('shortener', __name__)
 content_filter = ContentFilterService()
@@ -64,6 +65,9 @@ async def shorten_url():
             return jsonify(ERROR_MESSAGES['unsafe_content']), 403
             
         short_url = create_short_url(long_url, custom_path, expires_in_days)
+        
+        # Add tracking
+        TrackingService.track_url_creation(request, short_url, long_url)
         
         # Get remaining requests
         remaining = rate_limiter.get_remaining_requests(client_ip)
