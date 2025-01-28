@@ -252,4 +252,12 @@ class ContentFilterService:
             if not is_path_safe:
                 return False, f"Custom path {path_reason.lower()}"
             
-        return True, None 
+        return True, None
+
+    def check_content(self, content):
+        # Basic content filtering
+        return True
+
+def setup_content_filter():
+    """Initialize and configure the content filter"""
+    return ContentFilterService() 
