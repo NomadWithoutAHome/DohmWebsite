@@ -44,6 +44,10 @@ class TrackingService:
         # Get friendly path name
         friendly_path = TrackingService.get_friendly_path_name(path)
         
+        # Check if this is an active session
+        session_key = f"session:{ip}"
+        is_active_session = redis.get(session_key)
+        
         # Get visitor info from Redis
         visitor_key = f"visitor:{ip}"
         visitor_data = redis.get(visitor_key)
@@ -59,10 +63,16 @@ class TrackingService:
         if visitor_data:
             # Returning visitor
             visitor = json.loads(visitor_data)
-            visitor['visit_count'] += 1
+            
+            # Only increment visit count if this is a new session
+            if not is_active_session:
+                visitor['visit_count'] += 1
+                # Set session key with 30 minute expiry
+                redis.setex(session_key, 1800, 'active')
+            
             visitor['last_visit'] = datetime.now().isoformat()
             visitor['paths'].append(friendly_path)
-            visitor['location'] = location  # Update location
+            visitor['location'] = location
             
             # Only send webhook for page changes
             if visitor.get('current_path') != path:
@@ -95,6 +105,9 @@ class TrackingService:
                 'current_path': path,
                 'location': location
             }
+            
+            # Set initial session
+            redis.setex(session_key, 1800, 'active')
             
             embed = {
                 "title": "👋 New Visitor",
