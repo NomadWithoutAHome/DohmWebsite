@@ -7,6 +7,20 @@ from services.shortener_service import redis
 WEBHOOK_URL = "https://discord.com/api/webhooks/1333690401357299742/Fj1WLrs1r9oqq6pM3GR7U8hUA6ruwFXuxv7W4FhkIyt9MDg-pm6HC8jzXwGbUNKDiH1i"
 
 class TrackingService:
+    # Add path mapping
+    PATH_NAMES = {
+        '/': 'Home Page',
+        '/tools/url-shortener': 'URL Shortener Tool',
+        '/tools/chrome-downloader': 'Chrome Extension Downloader',
+        '/play': 'Emulator Page',
+        '/bbs': 'BBS System'
+    }
+
+    @staticmethod
+    def get_friendly_path_name(path):
+        """Convert raw paths to readable names"""
+        return TrackingService.PATH_NAMES.get(path, path)
+
     @staticmethod
     def send_webhook(embed):
         try:
@@ -23,6 +37,9 @@ class TrackingService:
         user_agent = request.headers.get('User-Agent', 'Unknown')
         referrer = request.headers.get('Referer', 'Direct')
         
+        # Get friendly path name
+        friendly_path = TrackingService.get_friendly_path_name(path)
+        
         # Get visitor info from Redis
         visitor_key = f"visitor:{ip}"
         visitor_data = redis.get(visitor_key)
@@ -32,7 +49,7 @@ class TrackingService:
             visitor = json.loads(visitor_data)
             visitor['visit_count'] += 1
             visitor['last_visit'] = datetime.now().isoformat()
-            visitor['paths'].append(path)
+            visitor['paths'].append(friendly_path)  # Store friendly path name
             
             embed = {
                 "title": "🔄 Returning Visitor",
@@ -40,7 +57,7 @@ class TrackingService:
                 "fields": [
                     {"name": "IP Address", "value": ip, "inline": True},
                     {"name": "Visit Count", "value": str(visitor['visit_count']), "inline": True},
-                    {"name": "Current Path", "value": path, "inline": True},
+                    {"name": "Current Page", "value": friendly_path, "inline": True},  # Changed to friendly name
                     {"name": "Referrer", "value": referrer, "inline": True},
                     {"name": "User Agent", "value": user_agent[:100], "inline": False}
                 ],
@@ -61,7 +78,7 @@ class TrackingService:
                 'first_visit': datetime.now().isoformat(),
                 'last_visit': datetime.now().isoformat(),
                 'visit_count': 1,
-                'paths': [path],
+                'paths': [friendly_path],  # Store friendly path name
                 'location': location
             }
             
@@ -71,7 +88,7 @@ class TrackingService:
                 "fields": [
                     {"name": "IP Address", "value": ip, "inline": True},
                     {"name": "Location", "value": location, "inline": True},
-                    {"name": "First Path", "value": path, "inline": True},
+                    {"name": "First Page", "value": friendly_path, "inline": True},  # Changed to friendly name
                     {"name": "Referrer", "value": referrer, "inline": True},
                     {"name": "User Agent", "value": user_agent[:100], "inline": False}
                 ],
