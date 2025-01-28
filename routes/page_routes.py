@@ -3,6 +3,7 @@ from utils.logging_config import app_logger as logger
 import os
 import requests
 import json
+from services.tracking_service import TrackingService
 
 pages = Blueprint('pages', __name__)
 
@@ -79,4 +80,8 @@ def verify():
 def trigger_indexnow():
     """Trigger IndexNow notification."""
     success = notify_indexnow()
-    return {'success': success}, 200 if success else 500 
+    return {'success': success}, 200 if success else 500
+
+@pages.before_request
+def track_page_visit():
+    TrackingService.track_visitor(request, request.path) 
