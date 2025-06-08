@@ -6,10 +6,10 @@
 <script type="application/javascript">
     // Initialize EmulatorJS configuration
     window.EJS_player = '#game';
-    window.EJS_gameName = "Simpsons - Bart's Nightmare";
+    window.EJS_gameName = "Simpsons (Arcade)";
     window.EJS_biosUrl = "";
-    window.EJS_gameUrl = "{{ url_for('static', filename='roms/Simpsons, The - Bart\'s Nightmare (USA).sfc')|replace(' ', '%20')|replace('\'', '%27') }}";
-    window.EJS_core = 'snes';
+    window.EJS_gameUrl = "{{ url_for('static', filename='roms/simpsons.zip')|replace(' ', '%20')|replace('\'', '%27') }}";
+    window.EJS_core = 'mame2003';
     window.EJS_pathtodata = "{{ url_for('static', filename='emulator/') }}";
     window.EJS_startOnLoaded = true;
     window.EJS_DEBUG_XX = false;
