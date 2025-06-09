@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DocToPDF - Document Converter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+        .terminal-font {
+            font-family: 'VT323', monospace;
+        }
+        .glitch {
+            animation: glitch 1s linear infinite;
+        }
+        @keyframes glitch {
+            2%, 64% {
+                transform: translate(2px,0) skew(0deg);
+            }
+            4%, 60% {
+                transform: translate(-2px,0) skew(0deg);
+            }
+            62% {
+                transform: translate(0,0) skew(5deg);
+            }
+        }
+        .scan-line {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: rgba(0, 255, 0, 0.3);
+            animation: scan 8s linear infinite;
+        }
+        @keyframes scan {
+            0% {
+                top: 0%;
+            }
+            100% {
+                top: 100%;
+            }
+        }
+        .typewriter {
+            overflow: hidden;
+            border-right: .15em solid #00ff00;
+            white-space: nowrap;
+            margin: 0 auto;
+            letter-spacing: .15em;
+            animation: typing 3.5s steps(40, end), blink-caret .75s step-end infinite;
+        }
+        @keyframes typing {
+            from { width: 0 }
+            to { width: 100% }
+        }
+        @keyframes blink-caret {
+            from, to { border-color: transparent }
+            50% { border-color: #00ff00 }
+        }
+    </style>
+</head>
+<body class="bg-black text-green-500 min-h-screen terminal-font">
+    <div class="scan-line"></div>
+    <div class="container mx-auto px-4 py-8">
+        <header class="text-center mb-12">
+            <h1 class="text-6xl mb-4 glitch">DocToPDF</h1>
+            <p class="text-2xl text-green-400">Document Conversion Terminal</p>
+        </header>
+
+        <main class="max-w-2xl mx-auto">
+            <div class="bg-gray-900 p-8 rounded-lg border-2 border-green-500 shadow-lg shadow-green-500/20">
+                <form id="uploadForm" class="space-y-6">
+                    <div class="space-y-2">
+                        <label class="block text-xl">SELECT FILE TO CONVERT</label>
+                        <input type="file" 
+                               id="fileInput"
+                               name="file" 
+                               class="w-full p-2 bg-black border-2 border-green-500 rounded text-green-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-green-500 file:bg-green-900 file:hover:bg-green-800 cursor-pointer"
+                               accept=".pdf,.docx">
+                        <div id="fileInfo" class="text-sm text-green-400 mt-2 hidden"></div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="block text-xl">TARGET FORMAT</label>
+                        <select name="target_format" 
+                                id="targetFormat"
+                                class="w-full p-2 bg-black border-2 border-green-500 rounded text-green-500">
+                            <option value="pdf">PDF</option>
+                            <option value="docx">DOCX</option>
+                        </select>
+                        <div id="conversionInfo" class="text-sm text-green-400 mt-2 hidden"></div>
+                    </div>
+
+                    <button type="submit" 
+                            id="convertButton"
+                            class="w-full py-3 px-6 bg-green-900 hover:bg-green-800 text-green-500 border-2 border-green-500 rounded-lg transition-colors duration-200">
+                        INITIATE CONVERSION
+                    </button>
+                </form>
+
+                <div id="status" class="mt-6 text-center hidden">
+                    <div class="animate-pulse text-green-400">PROCESSING...</div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const targetFormat = document.getElementById('targetFormat');
+        const fileInfo = document.getElementById('fileInfo');
+        const conversionInfo = document.getElementById('conversionInfo');
+        const convertButton = document.getElementById('convertButton');
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const extension = file.name.split('.').pop().toLowerCase();
+                fileInfo.textContent = `Selected file: ${file.name} (${extension.toUpperCase()})`;
+                fileInfo.classList.remove('hidden');
+
+                // Update target format options
+                const targetOptions = targetFormat.options;
+                for (let option of targetOptions) {
+                    option.disabled = option.value === extension;
+                }
+                targetFormat.value = extension === 'pdf' ? 'docx' : 'pdf';
+
+                // Update conversion info
+                conversionInfo.textContent = `Will convert ${extension.toUpperCase()} to ${targetFormat.value.toUpperCase()}`;
+                conversionInfo.classList.remove('hidden');
+            }
+        });
+
+        targetFormat.addEventListener('change', (e) => {
+            const file = fileInput.files[0];
+            if (file) {
+                const extension = file.name.split('.').pop().toLowerCase();
+                conversionInfo.textContent = `Will convert ${extension.toUpperCase()} to ${e.target.value.toUpperCase()}`;
+            }
+        });
+
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const status = document.getElementById('status');
+            const fileInput = document.getElementById('fileInput');
+            const targetFormatSelect = document.getElementById('targetFormat');
+
+            const file = fileInput.files[0];
+            const updatedTargetFormat = targetFormatSelect.value;
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('target_format', updatedTargetFormat);
+
+            if (!file) {
+                status.innerHTML = '<div class="text-red-500">ERROR: NO FILE SELECTED</div>';
+                status.classList.remove('hidden');
+                return;
+            }
+
+            const extension = file.name.split('.').pop().toLowerCase();
+            if (extension === updatedTargetFormat) {
+                status.innerHTML = '<div class="text-red-500">ERROR: CANNOT CONVERT TO SAME FORMAT</div>';
+                status.classList.remove('hidden');
+                return;
+            }
+            
+            status.classList.remove('hidden');
+            status.innerHTML = '<div class="animate-pulse text-green-400">PROCESSING...</div>';
+            
+            try {
+                const response = await fetch('/convert', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    // Redirect to download
+                    window.location.href = `/download/${result.conversion_id}`;
+                    status.innerHTML = '<div class="text-green-400">CONVERSION COMPLETE</div>';
+                } else {
+                    const error = await response.text();
+                    throw new Error(error || 'Conversion failed');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                status.innerHTML = `<div class="text-red-500">ERROR: ${error.message}</div>`;
+            } finally {
+                setTimeout(() => {
+                    status.classList.add('hidden');
+                }, 3000);
+            }
+        });
+    </script>
+</body>
+</html> 
