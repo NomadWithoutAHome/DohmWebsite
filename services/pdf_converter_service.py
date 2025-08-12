@@ -16,6 +16,9 @@ import asyncio
 from typing import Optional
 from pathlib import Path
 
+#pdf2docx==0.5.6
+#docx2pdf==0.1.8
+
 # Initialize Redis client
 redis = Redis(
     url="https://proven-warthog-57623.upstash.io",

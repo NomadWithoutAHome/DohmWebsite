@@ -5,7 +5,7 @@ from routes.crx_routes import crx
 #from routes.bbs_routes import bbs
 from routes.shortener_routes import shortener
 from routes.image_routes import image_routes
-from routes.pdf_converter_routes import pdf_converter
+#from routes.pdf_converter_routes import pdf_converter
 import mimetypes
 from asgiref.wsgi import WsgiToAsgi
 # from routes.converter_routes import converter
@@ -24,7 +24,7 @@ app.register_blueprint(pages)
 app.register_blueprint(crx)
 app.register_blueprint(shortener)
 app.register_blueprint(image_routes)
-app.register_blueprint(pdf_converter)
+#app.register_blueprint(pdf_converter)
 #app.register_blueprint(bbs)
 
 @app.route('/static/<path:filename>')
