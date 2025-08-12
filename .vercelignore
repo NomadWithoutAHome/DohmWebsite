@@ -1,4 +1,5 @@
 .git/
+.git/objects/
 __pycache__/
 *.pyc
 *.pyo
