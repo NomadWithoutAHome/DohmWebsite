@@ -29,6 +29,47 @@
         "Convert extensions to ZIP format",
         "Support for Chrome Web Store URLs",
         "Direct extension ID input"
+    ],
+    "author": {
+        "@type": "Person",
+        "name": "DOHMBOY64"
+    },
+    "publisher": {
+        "@type": "Person",
+        "name": "DOHMBOY64"
+    }
+}
+</script>
+
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+        {
+            "@type": "Question",
+            "name": "How do I find a Chrome extension's ID?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "To find an extension's ID: 1. Go to the Chrome Web Store, 2. Find the extension you want to download, 3. The ID is the long string of letters in the URL, 4. Example: https://chrome.google.com/webstore/detail/extension-name/abcdefghijklmnopqrstuvwxyz123456"
+            }
+        },
+        {
+            "@type": "Question",
+            "name": "What formats can I download extensions in?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "You can download Chrome extensions in two formats: CRX (Chrome Extension) format for direct installation, or ZIP format for viewing the extension's source code."
+            }
+        },
+        {
+            "@type": "Question",
+            "name": "Is this service free?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes, the Chrome Extension Downloader is completely free to use. There are no hidden fees or premium features."
+            }
+        }
     ]
 }
 </script>
@@ -89,4 +130,4 @@
 
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/tools.js') }}"></script>
-{% endblock %} 
+{% endblock %}

@@ -23,7 +23,54 @@
         "@type": "Offer",
         "price": "0",
         "priceCurrency": "USD"
+    },
+    "featureList": [
+        "Custom short URLs",
+        "Expiration dates",
+        "Content filtering",
+        "Retro-themed interface"
+    ],
+    "author": {
+        "@type": "Person",
+        "name": "DOHMBOY64"
+    },
+    "publisher": {
+        "@type": "Person",
+        "name": "DOHMBOY64"
     }
+}
+</script>
+
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+        {
+            "@type": "Question",
+            "name": "How do I create a custom short URL?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Check the 'Use custom path' option and enter your desired custom path (e.g., my-link). If the custom path is available, it will be used for your shortened URL."
+            }
+        },
+        {
+            "@type": "Question",
+            "name": "Can I set an expiration date for my links?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes, you can set expiration dates ranging from 1 day to 1 year. After the expiration date, the link will no longer work."
+            }
+        },
+        {
+            "@type": "Question",
+            "name": "Is there content filtering?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes, the URL shortener includes content filtering to prevent shortening URLs that contain inappropriate content."
+            }
+        }
+    ]
 }
 </script>
 {% endblock %}
@@ -589,4 +636,4 @@
         }
     }
 </script>
-{% endblock %} 
+{% endblock %}

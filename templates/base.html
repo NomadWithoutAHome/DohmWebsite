@@ -13,7 +13,7 @@
     <meta property="og:url" content="{{ request.url }}">
     <meta property="og:title" content="{% block og_title %}{{ self.title() }}{% endblock %}">
     <meta property="og:description" content="{% block og_description %}{{ self.meta_description() }}{% endblock %}">
-    <meta property="og:image" content="{% block og_image %}{{ url_for('static', filename='images/logo.png') }}{% endblock %}">
+    <meta property="og:image" content="{% block og_image %}{{ url_for('static', filename='assets/logo.png') }}{% endblock %}">
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image">
@@ -28,7 +28,7 @@
     <title>{% block title %}DOHMBOY64{% endblock %}</title>
 
     <!-- Favicon -->
-    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='assets/logo.png') }}">
     
     <!-- Structured Data -->
     <script type="application/ld+json">
@@ -133,7 +133,7 @@
         <div class="container mx-auto px-4 py-16">
             <div class="flex flex-col items-center justify-center space-y-12">
                 <a href="/" class="logo-glow w-48 md:w-64 transition-transform hover:scale-105 duration-300">
-                    <img src="{{ url_for('static', filename='assets/logo.png') }}" alt="Dohmbdy64 Logo" class="w-full h-auto">
+                    <img src="{{ url_for('static', filename='assets/logo.png') }}" alt="Dohmboy64 Logo" class="w-full h-auto">
                 </a>
                 
                 {% block content %}{% endblock %}
@@ -148,4 +148,4 @@
     <!-- Page-specific JavaScript -->
     {% block scripts %}{% endblock %}
 </body>
-</html> 
+</html>

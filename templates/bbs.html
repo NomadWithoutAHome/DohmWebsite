@@ -1,40 +1,119 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Dohm Industries BBS</title>
-    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-    <link href="/static/css/bbs.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/xterm@5.1.0/lib/xterm.min.js"></script>
-    <link href="https://cdn.jsdelivr.net/npm/xterm@5.1.0/css/xterm.min.css" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
-</head>
-<body>
-    <div class="bbs-container">
-        <header class="bbs-header">
-            <h1>DOHM INDUSTRIES BBS</h1>
-            <div class="status-bar">
-                <span>Users Online: <span id="users-online">0</span></span>
-                <span>Calls Today: <span id="calls-today">0</span></span>
-                <span>Last Caller: <span id="last-caller">None</span></span>
-            </div>
-        </header>
+{% extends "base.html" %}
 
-        <main class="bbs-main">
-            <div class="terminal-wrapper">
-                <div id="terminal-container">
-                    <div id="terminal"></div>
-                    <div class="scanlines"></div>
-                    <div class="glow"></div>
-                </div>
-            </div>
-        </main>
+{% block title %}DOHM Industries BBS - Retro Chat System{% endblock %}
 
-        <footer class="bbs-footer">
-            <div class="node-info">Node 1 - 2400 baud</div>
-            <div class="system-info">Dohm Industries BBS v1.0</div>
-        </footer>
-    </div>
-    <script src="/static/js/bbs.js"></script>
-</body>
-</html> 
+{% block meta_description %}Experience the classic BBS (Bulletin Board System) with real-time chat, retro terminal interface, and 90s nostalgia. Connect with other users in our vintage online community.{% endblock %}
+
+{% block meta_keywords %}bbs, bulletin board system, retro chat, terminal chat, 90s internet, online community, dohmboy64{% endblock %}
+
+{% block og_description %}Join our retro BBS for real-time chat with a classic terminal interface. Experience 90s internet culture with modern connectivity.{% endblock %}
+
+{% block structured_data %}
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "InteractiveApplication",
+    "name": "DOHM Industries BBS",
+    "url": "https://www.dohmboy64.com/bbs",
+    "description": "Classic Bulletin Board System with real-time chat and retro terminal interface",
+    "applicationCategory": "CommunicationApplication",
+    "operatingSystem": "Any",
+    "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+    },
+    "featureList": [
+        "Real-time chat interface",
+        "Retro terminal design",
+        "90s internet nostalgia",
+        "Multi-user support",
+        "Classic BBS experience"
+    ],
+    "author": {
+        "@type": "Person",
+        "name": "DOHMBOY64"
+    },
+    "publisher": {
+        "@type": "Person",
+        "name": "DOHMBOY64"
+    }
+}
+</script>
+
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+        {
+            "@type": "Question",
+            "name": "What is a BBS?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "BBS stands for Bulletin Board System, which was a popular way to communicate online in the 1980s and 1990s. Our BBS recreates that experience with modern technology."
+            }
+        },
+        {
+            "@type": "Question",
+            "name": "Do I need any special software to use the BBS?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "No special software is required. Just use your web browser to access our retro terminal interface."
+            }
+        },
+        {
+            "@type": "Question",
+            "name": "Is the BBS chat moderated?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes, we have content filtering in place to maintain a positive community environment."
+            }
+        }
+    ]
+}
+</script>
+{% endblock %}
+
+{% block styles %}
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<link href="{{ url_for('static', filename='css/bbs.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% block head_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/xterm@5.1.0/lib/xterm.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/xterm@5.1.0/css/xterm.min.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="bbs-container">
+    <header class="bbs-header">
+        <h1>DOHM INDUSTRIES BBS</h1>
+        <div class="status-bar">
+            <span>Users Online: <span id="users-online">0</span></span>
+            <span>Calls Today: <span id="calls-today">0</span></span>
+            <span>Last Caller: <span id="last-caller">None</span></span>
+        </div>
+    </header>
+
+    <main class="bbs-main">
+        <div class="terminal-wrapper">
+            <div id="terminal-container">
+                <div id="terminal"></div>
+                <div class="scanlines"></div>
+                <div class="glow"></div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bbs-footer">
+        <div class="node-info">Node 1 - 2400 baud</div>
+        <div class="system-info">Dohm Industries BBS v1.0</div>
+    </footer>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/bbs.js') }}"></script>
+{% endblock %}

@@ -9,27 +9,32 @@
 
 <url>
   <loc>https://www.dohmboy64.com/</loc>
-  <lastmod>2025-08-25T01:04:40+00:00</lastmod>
+  <lastmod>2025-09-10T14:22:00+00:00</lastmod>
   <priority>1.00</priority>
 </url>
 <url>
   <loc>https://www.dohmboy64.com/play</loc>
-  <lastmod>2025-08-25T01:04:40+00:00</lastmod>
+  <lastmod>2025-09-10T14:22:00+00:00</lastmod>
   <priority>0.80</priority>
 </url>
 <url>
+  <loc>https://www.dohmboy64.com/bbs</loc>
+  <lastmod>2025-09-10T14:22:00+00:00</lastmod>
+  <priority>0.70</priority>
+</url>
+<url>
   <loc>https://www.dohmboy64.com/tools/chrome-downloader</loc>
-  <lastmod>2025-08-25T01:04:40+00:00</lastmod>
+  <lastmod>2025-09-10T14:22:00+00:00</lastmod>
   <priority>0.80</priority>
 </url>
 <url>
   <loc>https://www.dohmboy64.com/tools/url-shortener</loc>
-  <lastmod>2025-08-25T01:04:40+00:00</lastmod>
+  <lastmod>2025-09-10T14:22:00+00:00</lastmod>
   <priority>0.80</priority>
 </url>
 <url>
   <loc>https://www.dohmboy64.com/tools/image-uploader</loc>
-  <lastmod>2025-08-25T01:04:40+00:00</lastmod>
+  <lastmod>2025-09-10T14:22:00+00:00</lastmod>
   <priority>0.80</priority>
 </url>
 

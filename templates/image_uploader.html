@@ -8,6 +8,73 @@
 
 {% block og_description %}Upload images and get direct links with our retro-themed image hosting API. Includes ShareX support for easy screenshot sharing.{% endblock %}
 
+{% block structured_data %}
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "DOHMBOY64 Image Uploader API",
+    "url": "https://www.dohmboy64.com/tools/image-uploader",
+    "description": "Free image hosting API with ShareX support",
+    "applicationCategory": "UtilityApplication",
+    "operatingSystem": "Any",
+    "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+    },
+    "featureList": [
+        "Direct image uploads via API",
+        "ShareX integration support",
+        "Supports PNG, JPG, JPEG, GIF, WebP",
+        "Unique URLs for each image",
+        "Automatic deletion after 24 hours"
+    ],
+    "author": {
+        "@type": "Person",
+        "name": "DOHMBOY64"
+    },
+    "publisher": {
+        "@type": "Person",
+        "name": "DOHMBOY64"
+    }
+}
+</script>
+
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+        {
+            "@type": "Question",
+            "name": "How do I set up ShareX with your image uploader?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "1. Download the ShareX config file from our website. 2. Open ShareX and go to Destinations > Custom uploader settings. 3. Import the config file. 4. Set it as your default image uploader."
+            }
+        },
+        {
+            "@type": "Question",
+            "name": "What image formats are supported?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "We support PNG, JPG, JPEG, GIF, and WebP formats. Maximum file size is 10MB."
+            }
+        },
+        {
+            "@type": "Question",
+            "name": "How long are uploaded images stored?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "All uploaded images are automatically deleted after 24 hours to manage storage costs."
+            }
+        }
+    ]
+}
+</script>
+{% endblock %}
+
 {% block styles %}
 <style>
     .docs-container {
@@ -270,4 +337,4 @@ function downloadShareXConfig() {
     URL.revokeObjectURL(url);
 }
 </script>
-{% endblock %} 
+{% endblock %}

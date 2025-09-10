@@ -1,6 +1,76 @@
 {% extends "base.html" %}
 
-{% block title %}DOHMBDY64 - Simpsons Arcade Game{% endblock %}
+{% block title %}DOHMBOY64 - Simpsons Arcade Game{% endblock %}
+
+{% block meta_description %}Play The Simpsons arcade game online with our retro emulator. Classic 90s gaming experience with authentic CRT effects and original gameplay.{% endblock %}
+
+{% block meta_keywords %}simpsons arcade game, retro emulator, classic gaming, arcade games online, 90s games, dohmboy64{% endblock %}
+
+{% block og_description %}Experience The Simpsons arcade game with our authentic retro emulator. Play the classic 90s arcade game with CRT effects and original controls.{% endblock %}
+
+{% block structured_data %}
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "VideoGame",
+    "name": "The Simpsons Arcade Game",
+    "url": "https://www.dohmboy64.com/play",
+    "description": "Classic Simpsons arcade game running on retro emulator with CRT effects",
+    "gamePlatform": "Web Browser",
+    "applicationCategory": "GameApplication",
+    "operatingSystem": "Any",
+    "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+    },
+    "author": {
+        "@type": "Person",
+        "name": "DOHMBOY64"
+    },
+    "publisher": {
+        "@type": "Person",
+        "name": "DOHMBOY64"
+    },
+    "genre": "Arcade",
+    "datePublished": "1991",
+    "playMode": "SinglePlayer"
+}
+</script>
+
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+        {
+            "@type": "Question",
+            "name": "What controls are used in the game?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "The game uses standard arcade controls. Use arrow keys for movement and spacebar or enter for actions."
+            }
+        },
+        {
+            "@type": "Question",
+            "name": "Can I play this on mobile devices?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "The emulator works on most modern browsers, but performance may vary on mobile devices."
+            }
+        },
+        {
+            "@type": "Question",
+            "name": "Is this the original Simpsons arcade game?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes, this is the authentic 1991 Simpsons arcade game running through our retro emulator."
+            }
+        }
+    ]
+}
+</script>
+{% endblock %}
 
 {% block head_scripts %}
 <script type="application/javascript">
@@ -294,4 +364,4 @@
         }
     }
 </script>
-{% endblock %} 
+{% endblock %}
